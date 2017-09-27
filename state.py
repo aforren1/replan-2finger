@@ -42,7 +42,7 @@ class StateMachine(Machine):
         self._time_last_beep = round(0.5 + (0.4 * 3), 2)
 
         self._beep = sound.Sound(np.transpose(np.vstack((tmp, tmp))),
-                                 blockSize=32,
+                                 blockSize=16,
                                  hamming=False)
 
         # timers
@@ -54,9 +54,13 @@ class StateMachine(Machine):
             {'trigger': 'start',
              'source': 'setup',
              'dest': 'intrial',
-             'after': ['schedule_beep', 'show_first_target',
+             'after': ['schedule_beep',
                        'reset_trial_timer', 'record_trial_start',
                        'reset_second_timer']},
+            {'trigger': 'step',
+             'source': 'intrial',
+             'dest': 'first',
+             'after': ['show_first_target']},
             {'trigger': 'step',
              'source': 'second',
              'dest': 'feedback',

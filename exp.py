@@ -17,8 +17,10 @@ with state_machine.device:
     state_machine.start()
 
     while state_machine.state is not 'cleanup':
-            state_machine.step()
-            state_machine.win.flip()
+            state_machine.input() # collect input
+            state_machine.draw_input() # draw the input
+            state_machine.step() # evaluate any transitions (incl. drawing, scheduling audio, etc.)
+            state_machine.win.flip() # flip frame buffer
 
 
 core.quit()
