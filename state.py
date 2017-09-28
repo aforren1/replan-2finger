@@ -263,9 +263,10 @@ class StateMachine(Machine):
         data, timestamp = self.device.read() # need to correct timestamp
         if data is not None:
             current_nans = np.isnan(self.trial_input_buffer)
-            next_index = np.where(current_nans)[0][0]
-            self.trial_input_buffer[next_index, :] = data
-            self.trial_input_time_buffer[next_index, :] = timestamp
+            if current_nans.any():
+                next_index = np.where(current_nans)[0][0]
+                self.trial_input_buffer[next_index, :] = data
+                self.trial_input_time_buffer[next_index, :] = timestamp
             if type(self.device).__name__ is 'Keyboard':
                 self.device_on = data.any() # colour in if any buttons pressed
                 if np.isnan(self.first_press) and self.device_on:
