@@ -133,6 +133,7 @@ class StateMachine(Machine):
         self.beep = sound.Sound(np.transpose(np.vstack((tmp, tmp))),
                                 blockSize=16,
                                 hamming=False)
+        self.coin = sound.Sound('coin.wav', stereo=True) #TODO: check bug in auto-config of sounddevice (stereo = -1)
 
         # Input device
         if settings['forceboard']:
@@ -193,12 +194,17 @@ class StateMachine(Machine):
     def check_answer(self):
         correct_answer = self.trial_table['second'][self.trial_counter] == self.response_index
         delta = self.response_time - self.last_beep_time
+        good_timing = False
         if delta > 0.075:
             print('too slow')
         elif delta < -0.075:
             print('too fast')
         else:
             print('good timing')
+            good_timing = True
+
+        if correct_answer and good_timing:
+            self.coin.play()
 
     def draw_feedback(self):
         pass
