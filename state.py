@@ -26,6 +26,7 @@ class StateMachine(Machine):
 
             {'source': 'pretrial',
              'trigger': 'step',
+             'conditions': 'wait_for_release',
              'after': ['sched_beep',
                        'sched_trial_timer_reset',
                        'sched_record_trial_start',
@@ -68,15 +69,17 @@ class StateMachine(Machine):
             # evaluate whether to exit experiment first...
             {'source': 'post_trial',
              'trigger': 'step',
-             'conditions': ['post_timer_elapsed', # Once n milliseconds have passed...
-                            'trial_counter_exceed_table'],  # And the number of trials exceeds trial table
+             'conditions': ['post_timer_elapsed',  # Once n milliseconds have passed...
+                            'trial_counter_exceed_table',  # And the number of trials exceeds trial table
+                            'wait_for_press'],  # wait until at least *something* pressed
              'after': ['close_n_such'],  # Clean up, we're done here
              'dest': 'cleanup'},
 
             # ... or move to the next trial
             {'source': 'post_trial',
              'trigger': 'step',
-             'conditions': 'post_timer_elapsed',  # If the previous one evaluates to False, we should end up here
+             'conditions': ['post_timer_elapsed', # If the previous one evaluates to False, we should end up here
+                            'wait_for_press'],
              'dest': 'pretrial'}
         ]
         Machine.__init__(self, states=states, transitions=transitions, initial='pretrial')
@@ -152,6 +155,10 @@ class StateMachine(Machine):
         self.correct_answer = False
 
     # pretrial functions
+    def wait_for_release(self):
+        # Wait until all keys released
+        return not self.device_on
+
     def sched_beep(self):
         self.beep.seek(self.beep.stream.latency)
         self.win.callOnFlip(self.beep.play)
@@ -243,6 +250,9 @@ class StateMachine(Machine):
 
     def trial_counter_exceed_table(self):
         return self.trial_counter >= len(self.trial_table.index)
+
+    def wait_for_press(self):
+        return not np.isnan(self.first_press)
 
     # cleanup functions
     def close_n_such(self):
