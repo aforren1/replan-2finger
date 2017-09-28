@@ -119,6 +119,35 @@ class StateMachine(Machine):
         self.fixation = visual.Circle(self.win, size = 0.05, fillColor=[1, 1, 1], pos=(0, 0),
                                       autoDraw=True)
 
+        # text
+        self.good = visual.TextStim(self.win,
+                                    text=u'Good timing!',
+                                    pos=(0, 0.4),
+                                    units='norm',
+                                    color=(-1, 1, 0.2),
+                                    height=0.1,
+                                    alignHoriz='center',
+                                    alignVert='center',
+                                    autoLog=True)
+        self.too_slow = visual.TextStim(self.win,
+                                    text=u'Too slow.',
+                                    pos=(0, 0.4),
+                                    units='norm',
+                                    color=(1, -1, -1),
+                                    height=0.1,
+                                    alignHoriz='center',
+                                    alignVert='center',
+                                    autoLog=True)
+        self.too_fast = visual.TextStim(self.win,
+                                    text=u'Too fast.',
+                                    pos=(0, 0.4),
+                                    units='norm',
+                                    color=(1, -1, -1),
+                                    height=0.1,
+                                    alignHoriz='center',
+                                    alignVert='center',
+                                    autoLog=True)
+
         # audio
         tmp = beep_sequence(click_freq=(523.251, 659.255, 783.991, 1046.5),
                             inter_click_interval=0.4,
@@ -212,12 +241,12 @@ class StateMachine(Machine):
         if delta > 0.075:
             print('too slow')
         elif delta < -0.075:
-            print('too fast')
+            self.too_fast.autoDraw = True
         elif np.isnan(self.first_press):
-            print('too slow')
+            self.too_slow.autoDraw = True
         else:
-            print('good timing')
             good_timing = True
+            self.good.autoDraw = True
         self.correct_answer = correct_answer
         if correct_answer and good_timing:
             self.coin.play()
@@ -237,6 +266,9 @@ class StateMachine(Machine):
         # remove targets, make sure everything is proper colour
         [t.setAutoDraw(False) for t in self.targets]
         [t.setFillColor([0.7, 1, 1]) for t in self.targets]
+        self.good.autoDraw = False
+        self.too_fast.autoDraw = False
+        self.too_slow.autoDraw = False
 
     def increment_trial_counter(self):
         self.trial_counter += 1

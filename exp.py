@@ -22,4 +22,5 @@ with state_machine.device:
             state_machine.step() # evaluate any transitions (incl. drawing, scheduling audio, etc.)
             state_machine.win.flip() # flip frame buffer
 
+state_machine.win.close()
 core.quit()
