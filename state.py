@@ -101,8 +101,8 @@ class StateMachine(Machine):
                                  screen=1,
                                  units='height',
                                  allowGUI=False,
-                                 colorSpace='rgb255',
-                                 color = (0, 0, 0))
+                                 colorSpace='rgb',
+                                 color = (-1, -1, -1))
         self.win.recordFrameIntervals = True
 
         # targets
@@ -110,7 +110,7 @@ class StateMachine(Machine):
         self.targets = [visual.Circle(self.win, size = 0.3, fillColor=[0.7, 1, 1], pos=p) for p in poses]
 
         # push feedback
-        self.push_feedback = visual.Circle(self.win, size = 0.15, fillColor=[-1, -1, -1], pos=(0, 0),
+        self.push_feedback = visual.Circle(self.win, size = 0.1, fillColor=[-1, -1, -1], pos=(0, 0),
                                            autoDraw=True, autoLog=False)
         # fixation
         self.fixation = visual.Circle(self.win, size = 0.05, fillColor=[1, 1, 1], pos=(0, 0),
@@ -149,6 +149,7 @@ class StateMachine(Machine):
         self.left_val = self.trial_table[['first', 'second']].min(axis=0).min()
         self.right_val = self.trial_table[['first', 'second']].max(axis=0).max()
         self.device_on = False
+        self.correct_answer = False
 
     # pretrial functions
     def sched_beep(self):
@@ -210,12 +211,13 @@ class StateMachine(Machine):
         else:
             print('good timing')
             good_timing = True
-
+        self.correct_answer = correct_answer
         if correct_answer and good_timing:
             self.coin.play()
 
     def draw_feedback(self):
-        pass
+        # text for timing, correctness
+        [t.setFillColor((-0.3, 0.7, -0.3) if self.correct_answer else (0.7, -0.3, -0.3)) for t in self.targets]
 
     def sched_feedback_timer_reset(self):
         self.win.callOnFlip(self.feedback_timer.reset, 0.3) # 300 ms feedback?
@@ -227,6 +229,7 @@ class StateMachine(Machine):
     def remove_feedback(self):
         # remove targets, make sure everything is proper colour
         [t.setAutoDraw(False) for t in self.targets]
+        [t.setFillColor([0.7, 1, 1]) for t in self.targets]
 
     def increment_trial_counter(self):
         self.trial_counter += 1
