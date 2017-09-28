@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import signal as sg
 from transitions import Machine
 import pandas as pd
 from toon.audio import beep_sequence
@@ -25,17 +26,15 @@ class StateMachine(Machine):
 
             {'source': 'pretrial',
              'trigger': 'step',
-             'prepare': '',
-             'conditions': '', # nothing needs to block
              'after': ['sched_beep',
                        'sched_trial_timer_reset',
-                       'sched_record_trial_start'],
+                       'sched_record_trial_start',
+                       'first_press_reset'],
              'dest': 'enter_trial'},
 
             # wait for 500 ms until showing first image (to coincide w/ real audio onset)
             {'source': 'enter_trial',
              'trigger': 'step',
-             'prepare': '',  # called as soon as transition starts (every time)
              'conditions': 'trial_timer_passed_first',  # i.e. 500 ms - ~16ms elapsed
              'after': 'show_first_target',  # after state change (after conditions are evaluated, run once)
              'dest': 'first_target'},
@@ -43,7 +42,6 @@ class StateMachine(Machine):
             # after 500 ms, show the first image
             {'source': 'first_target',
              'trigger': 'step',
-             'prepare': '',
              'conditions': 'trial_timer_passed_second',  # i.e. the proposed prep time in table elapsed
              'after': 'show_second_target',  # after state change (after conditions are evaluated, run once)
              'dest': 'second_target'},
@@ -51,7 +49,6 @@ class StateMachine(Machine):
             # after n extra ms, show second image & wait until beeps are over (plus a little)
             {'source': 'second_target',
              'trigger': 'step',
-             'prepare': '',
              'conditions': 'trial_timer_elapsed',  # Beeps have finished + 200ms of mush
              'after': ['record_data',  # save data from trial
                        'check_answer',
@@ -62,7 +59,6 @@ class StateMachine(Machine):
             # show feedback for n seconds
             {'source': 'feedback',
              'trigger': 'step',
-             'prepare': '',
              'conditions': 'feedback_timer_elapsed',  # Once n milliseconds have passed...
              'after': ['remove_feedback', # remove targets and make sure all colours are normal
                        'increment_trial_counter', # add one to the trial counter
@@ -72,7 +68,6 @@ class StateMachine(Machine):
             # evaluate whether to exit experiment first...
             {'source': 'post_trial',
              'trigger': 'step',
-             'prepare': '',
              'conditions': ['post_timer_elapsed', # Once n milliseconds have passed...
                             'trial_counter_exceed_table'],  # And the number of trials exceeds trial table
              'after': ['close_n_such'],  # Clean up, we're done here
@@ -81,9 +76,7 @@ class StateMachine(Machine):
             # ... or move to the next trial
             {'source': 'post_trial',
              'trigger': 'step',
-             'prepare': '',
              'conditions': 'post_timer_elapsed',  # If the previous one evaluates to False, we should end up here
-             'after': '',
              'dest': 'pretrial'}
         ]
         Machine.__init__(self, states=states, transitions=transitions, initial='pretrial')
@@ -104,7 +97,7 @@ class StateMachine(Machine):
         # window
         self.win = visual.Window(size=(800, 800),
                                  pos=(0, 0),
-                                 fullscr=False,#settings['fullscreen'],
+                                 fullscr=settings['fullscreen'],
                                  screen=1,
                                  units='height',
                                  allowGUI=False,
@@ -114,13 +107,13 @@ class StateMachine(Machine):
 
         # targets
         poses = [(-0.25, 0), (0.25, 0)]  # vary just on x-axis
-        self.targets = [visual.Circle(self.win, size = 0.3, fillColor='cyan', pos=p) for p in poses]
+        self.targets = [visual.Circle(self.win, size = 0.3, fillColor=[0.7, 1, 1], pos=p) for p in poses]
 
         # push feedback
-        self.push_feedback = visual.Circle(self.win, size = 0.15, fillColor='white', pos=(0, 0),
-                                           autoDraw=True)
+        self.push_feedback = visual.Circle(self.win, size = 0.15, fillColor=[-1, -1, -1], pos=(0, 0),
+                                           autoDraw=True, autoLog=False)
         # fixation
-        self.fixation = visual.Circle(self.win, size = 0.1, fillColor='white', pos=(0, 0),
+        self.fixation = visual.Circle(self.win, size = 0.05, fillColor=[1, 1, 1], pos=(0, 0),
                                       autoDraw=True)
 
         # audio
@@ -147,8 +140,15 @@ class StateMachine(Machine):
 
         # extras
         self.frame_period = 1/self.win.getActualFrameRate()
-        self.trial_start = None
-        self.trial_counter = 1
+        self.trial_start = 0
+        self.trial_counter = 0 # start at zero b/c zero indexing
+        self.trial_input_buffer = np.full((600, 10), np.nan)
+        self.trial_input_time_buffer = np.full((600, 1), np.nan)
+        self.first_press = np.nan
+        self.first_press_time = np.nan
+        self.left_val = self.trial_table[['first', 'second']].min(axis=0).min()
+        self.right_val = self.trial_table[['first', 'second']].max(axis=0).max()
+        self.device_on = False
 
     # pretrial functions
     def sched_beep(self):
@@ -165,6 +165,10 @@ class StateMachine(Machine):
     def _get_trial_start(self):
         self.trial_start = self.win.lastFrameT
 
+    def first_press_reset(self):
+        self.first_press = np.nan
+        self.first_press_time = np.nan
+
     # enter_trial functions
     def trial_timer_passed_first(self):
         # determine if 500 ms has elapsed
@@ -173,7 +177,8 @@ class StateMachine(Machine):
         return (self.last_beep_time + 0.2 - self.trial_timer.getTime() + self.frame_period) >= 0.5
 
     def show_first_target(self):
-        self.targets[self.trial_table['first'][self.trial_counter]].setAutoDraw(True)
+        # This is tricky -- if the condition evaluates to false, draw the left target
+        self.targets[int(self.trial_table['first'][self.trial_counter] == self.right_val)].setAutoDraw(True)
 
     # first_target functions
     def trial_timer_passed_second(self):
@@ -181,8 +186,8 @@ class StateMachine(Machine):
         return (self.trial_timer.getTime() - 0.2 - self.frame_period) <= self.trial_table['switch_time'][self.trial_counter]
 
     def show_second_target(self):
-        self.targets[self.trial_table['first'][self.trial_counter]].setAutoDraw(False)
-        self.targets[self.trial_table['second'][self.trial_counter]].setAutoDraw(True)
+        self.targets[int(self.trial_table['first'][self.trial_counter] == self.right_val)].setAutoDraw(False)
+        self.targets[int(self.trial_table['second'][self.trial_counter] == self.right_val)].setAutoDraw(True)
 
     # second_target functions
     def trial_timer_elapsed(self):
@@ -192,13 +197,16 @@ class StateMachine(Machine):
         pass
 
     def check_answer(self):
-        correct_answer = self.trial_table['second'][self.trial_counter] == self.response_index
-        delta = self.response_time - self.last_beep_time
+        correct_answer = self.trial_table['second'][self.trial_counter] == self.first_press
+        delta = self.first_press_time - self.last_beep_time
+        print(delta)
         good_timing = False
         if delta > 0.075:
             print('too slow')
         elif delta < -0.075:
             print('too fast')
+        elif np.isnan(self.first_press):
+            print('too slow')
         else:
             print('good timing')
             good_timing = True
@@ -218,7 +226,7 @@ class StateMachine(Machine):
 
     def remove_feedback(self):
         # remove targets, make sure everything is proper colour
-        pass
+        [t.setAutoDraw(False) for t in self.targets]
 
     def increment_trial_counter(self):
         self.trial_counter += 1
@@ -231,7 +239,7 @@ class StateMachine(Machine):
         return self.post_timer.getTime() <= 0
 
     def trial_counter_exceed_table(self):
-        return self.trial_counter > len(self.trial_table.index)
+        return self.trial_counter >= len(self.trial_table.index)
 
     # cleanup functions
     def close_n_such(self):
@@ -239,8 +247,23 @@ class StateMachine(Machine):
 
     def input(self):
         # collect input
-        data = self.device.read()
+        data, timestamp = self.device.read() # need to correct timestamp
+        if data is not None:
+            current_nans = np.isnan(self.trial_input_buffer)
+            next_index = np.where(current_nans)[0][0]
+            self.trial_input_buffer[next_index, :] = data
+            self.trial_input_time_buffer[next_index, :] = timestamp
+            if type(self.device).__name__ is 'Keyboard':
+                self.device_on = data.any() # colour in if any buttons pressed
+                if np.isnan(self.first_press) and self.device_on:
+                    self.first_press = np.where(data)[0] + 1
+                    self.first_press_time = timestamp - self.trial_start
+                    print((self.first_press, self.first_press_time))
+
+
+            elif type(self.device).__name__ is 'ForceTransducers':
+                # see sg.medfilt(trial_input_buffer, kernel_size=(odd, 1))
+                pass
 
     def draw_input(self):
-        self.push_feedback.color = [120, 120, 120] if self.device_on else [0, 0, 0]
-
+        self.push_feedback.setFillColor([0, 0, 0] if self.device_on else [-1, -1, -1])
