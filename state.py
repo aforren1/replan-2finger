@@ -54,6 +54,7 @@ class StateMachine(Machine):
              'prepare': '',
              'conditions': 'trial_timer_elapsed',  # Beeps have finished + 200ms of mush
              'after': ['record_data',  # save data from trial
+                       'check_answer',
                        'draw_feedback',  # figure out what was pushed based on buffer
                        'sched_feedback_timer_reset'],  # set timer for feedback duration
              'dest': 'feedback'},
@@ -106,7 +107,9 @@ class StateMachine(Machine):
                                  fullscr=False,#settings['fullscreen'],
                                  screen=1,
                                  units='height',
-                                 allowGUI=False)
+                                 allowGUI=False,
+                                 colorSpace='rgb255',
+                                 color = (0, 0, 0))
         self.win.recordFrameIntervals = True
 
         # targets
@@ -125,7 +128,7 @@ class StateMachine(Machine):
                             inter_click_interval=0.4,
                             num_clicks=4,
                             dur_clicks=0.04)
-        self._time_last_beep = round(0.5 + (0.4 * 3), 2)
+        self.last_beep_time = round(0.5 + (0.4 * 3), 2)
 
         self.beep = sound.Sound(np.transpose(np.vstack((tmp, tmp))),
                                 blockSize=16,
@@ -153,7 +156,7 @@ class StateMachine(Machine):
 
     def sched_trial_timer_reset(self):
         # trial ends 200 ms after last beep
-        self.win.callOnFlip(self.trial_timer.reset, self._time_last_beep + 0.2)
+        self.win.callOnFlip(self.trial_timer.reset, self.last_beep_time + 0.2)
 
     def sched_record_trial_start(self):
         self.win.callOnFlip(self._get_trial_start)
@@ -164,21 +167,21 @@ class StateMachine(Machine):
     # enter_trial functions
     def trial_timer_passed_first(self):
         # determine if 500 ms has elapsed
-        # The timer is started at _time_last_beep + 0.2
+        # The timer is started at last_beep_time + 0.2
         # TODO: Think about this one
-        return (self._time_last_beep + 0.2 - self.trial_timer.getTime() + self.frame_period) >= 0.5
+        return (self.last_beep_time + 0.2 - self.trial_timer.getTime() + self.frame_period) >= 0.5
 
     def show_first_target(self):
-        self.targets[self.trial_table['first'][self.trial_count]].setAutoDraw(True)
+        self.targets[self.trial_table['first'][self.trial_counter]].setAutoDraw(True)
 
     # first_target functions
     def trial_timer_passed_second(self):
         # this timer is the other way around
-        return (self.trial_timer.getTime() - 0.2 - self.frame_period) <= self.trial_table['switch_time'][self.trial_count]
+        return (self.trial_timer.getTime() - 0.2 - self.frame_period) <= self.trial_table['switch_time'][self.trial_counter]
 
     def show_second_target(self):
-        self.targets[self.trial_table['first'][self.trial_count]].setAutoDraw(False)
-        self.targets[self.trial_table['second'][self.trial_count]].setAutoDraw(True)
+        self.targets[self.trial_table['first'][self.trial_counter]].setAutoDraw(False)
+        self.targets[self.trial_table['second'][self.trial_counter]].setAutoDraw(True)
 
     # second_target functions
     def trial_timer_elapsed(self):
@@ -186,6 +189,16 @@ class StateMachine(Machine):
 
     def record_data(self):
         pass
+
+    def check_answer(self):
+        correct_answer = self.trial_table['second'][self.trial_counter] == self.response_index
+        delta = self.response_time - self.last_beep_time
+        if delta > 0.075:
+            print('too slow')
+        elif delta < -0.075:
+            print('too fast')
+        else:
+            print('good timing')
 
     def draw_feedback(self):
         pass
@@ -217,4 +230,11 @@ class StateMachine(Machine):
     # cleanup functions
     def close_n_such(self):
         pass
+
+    def input(self):
+        # collect input
+        data = self.device.read()
+
+    def draw_input(self):
+        self.push_feedback.color = [120, 120, 120] if self.device_on else [0, 0, 0]
 
