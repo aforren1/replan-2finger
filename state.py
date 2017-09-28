@@ -120,33 +120,15 @@ class StateMachine(Machine):
                                       autoDraw=True)
 
         # text
-        self.good = visual.TextStim(self.win,
-                                    text=u'Good timing!',
-                                    pos=(0, 0.4),
-                                    units='norm',
-                                    color=(-1, 1, 0.2),
-                                    height=0.1,
-                                    alignHoriz='center',
-                                    alignVert='center',
-                                    autoLog=True)
-        self.too_slow = visual.TextStim(self.win,
-                                    text=u'Too slow.',
-                                    pos=(0, 0.4),
-                                    units='norm',
-                                    color=(1, -1, -1),
-                                    height=0.1,
-                                    alignHoriz='center',
-                                    alignVert='center',
-                                    autoLog=True)
-        self.too_fast = visual.TextStim(self.win,
-                                    text=u'Too fast.',
-                                    pos=(0, 0.4),
-                                    units='norm',
-                                    color=(1, -1, -1),
-                                    height=0.1,
-                                    alignHoriz='center',
-                                    alignVert='center',
-                                    autoLog=True)
+        self.good = visual.TextStim(self.win, text=u'Good timing!', pos=(0, 0.4),
+                                    units='norm', color=(-1, 1, 0.2), height=0.1,
+                                    alignHoriz='center', alignVert='center', autoLog=True)
+        self.too_slow = visual.TextStim(self.win, text=u'Too slow.', pos=(0, 0.4),
+                                    units='norm', color=(1, -1, -1), height=0.1,
+                                    alignHoriz='center', alignVert='center', autoLog=True)
+        self.too_fast = visual.TextStim(self.win, text=u'Too fast.', pos=(0, 0.4),
+                                    units='norm', color=(1, -1, -1), height=0.1,
+                                    alignHoriz='center', alignVert='center', autoLog=True)
 
         # audio
         tmp = beep_sequence(click_freq=(523.251, 659.255, 783.991, 1046.5),
