@@ -144,6 +144,7 @@ class StateMachine(Machine):
         # extras
         self.frame_period = 1/self.win.getActualFrameRate()
         self.trial_start = None
+        self.trial_counter = 1
 
     # pretrial functions
     def sched_beep(self):
@@ -163,20 +164,57 @@ class StateMachine(Machine):
     # enter_trial functions
     def trial_timer_passed_first(self):
         # determine if 500 ms has elapsed
-        return self._time_last_beep
+        # The timer is started at _time_last_beep + 0.2
+        # TODO: Think about this one
+        return (self._time_last_beep + 0.2 - self.trial_timer.getTime() + self.frame_period) >= 0.5
 
+    def show_first_target(self):
+        self.targets[self.trial_table['first'][self.trial_count]].setAutoDraw(True)
 
     # first_target functions
+    def trial_timer_passed_second(self):
+        # this timer is the other way around
+        return (self.trial_timer.getTime() - 0.2 - self.frame_period) <= self.trial_table['switch_time'][self.trial_count]
 
+    def show_second_target(self):
+        self.targets[self.trial_table['first'][self.trial_count]].setAutoDraw(False)
+        self.targets[self.trial_table['second'][self.trial_count]].setAutoDraw(True)
 
     # second_target functions
+    def trial_timer_elapsed(self):
+        return self.trial_timer.getTime() <= 0
 
+    def record_data(self):
+        pass
+
+    def draw_feedback(self):
+        pass
+
+    def sched_feedback_timer_reset(self):
+        self.win.callOnFlip(self.feedback_timer.reset, 0.3) # 300 ms feedback?
 
     # feedback functions
+    def feedback_timer_elapsed(self):
+        return self.feedback_timer.getTime() <= 0
 
+    def remove_feedback(self):
+        # remove targets, make sure everything is proper colour
+        pass
+
+    def increment_trial_counter(self):
+        self.trial_counter += 1
+
+    def sched_post_timer_reset(self):
+        self.win.callOnFlip(self.post_timer.reset, 0.1) # can be short (500 ms already built in via audio delay)
 
     # post_trial functions
+    def post_timer_elapsed(self):
+        return self.post_timer.getTime() <= 0
 
+    def trial_counter_exceed_table(self):
+        return self.trial_counter > len(self.trial_table.index)
 
     # cleanup functions
+    def close_n_such(self):
+        pass
 
