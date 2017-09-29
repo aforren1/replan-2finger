@@ -1,3 +1,4 @@
+from datetime import datetime as dt
 import numpy as np
 from scipy import signal as sg
 from transitions import Machine
@@ -151,6 +152,13 @@ class StateMachine(Machine):
             for key in keys:
                 chars.append(key)
             self.device = Keyboard(keys=chars, clock_source=self.global_clock)
+
+        # by-trial data
+        with open(dt.now().strftime("%Y%m%d%H%M%S") + self.subject + '.csv', 'w') as f:
+            f.write('subject,first_target,second_target,switch_time\n')
+
+        self.subject = settings['subject']
+        trial_data = {'subject': self.subject, }
 
         # extras
         self.frame_period = 1/self.win.getActualFrameRate()
