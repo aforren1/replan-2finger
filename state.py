@@ -6,7 +6,7 @@ from transitions import Machine
 import pandas as pd
 import csv
 from toon.audio import beep_sequence
-from toon.input import Keyboard
+from toon.input import Keyboard, ForceTransducers
 from psychopy import prefs
 
 prefs.general['audioLib'] = ['sounddevice']
