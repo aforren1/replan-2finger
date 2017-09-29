@@ -17,7 +17,6 @@ state_machine = StateMachine(settings=settings)
 with state_machine.device:
 
     while state_machine.state is not 'cleanup':
-            print(state_machine.state)
             state_machine.input() # collect input
             state_machine.draw_input() # draw the input
             state_machine.step() # evaluate any transitions (incl. drawing, scheduling audio, etc.)

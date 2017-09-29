@@ -160,10 +160,10 @@ class StateMachine(Machine):
         with open(self.summary_file_name, 'w') as f:
             f.write('index,subject,first_target,second_target,switch_time\n')
 
-        trial_data = {'index': 0, 'subject': settings['subject'], 'first_target': np.nan,
-                      'second_target': np.nan, 'switch_time': np.nan,
-                      'real_switch_time': np.nan, 'first_press': np.nan,
-                      'first_press_time': np.nan}
+        self.trial_data = {'index': 0, 'subject': settings['subject'], 'first_target': np.nan,
+                           'second_target': np.nan, 'switch_time': np.nan,
+                           'real_switch_time': np.nan, 'first_press': np.nan,
+                           'first_press_time': np.nan}
 
         # extras
         self.frame_period = 1/self.win.getActualFrameRate()
@@ -189,7 +189,7 @@ class StateMachine(Machine):
 
     def sched_trial_timer_reset(self):
         # trial ends 200 ms after last beep
-        self.win.callOnFlip(self.trial_timer.reset, self.last_beep_time + 0.2)
+        self.win.callOnFlip(self.trial_timer.reset, self.last_beep_time + 0.2 - self.frame_period)
 
     def sched_record_trial_start(self):
         self.win.callOnFlip(self._get_trial_start)
@@ -220,6 +220,12 @@ class StateMachine(Machine):
     def show_second_target(self):
         self.targets[int(self.trial_table['first'][self.trial_counter] == self.right_val)].setAutoDraw(False)
         self.targets[int(self.trial_table['second'][self.trial_counter] == self.right_val)].setAutoDraw(True)
+        self.win.callOnFlip(self.log_switch_time)
+
+    def log_switch_time(self):
+        self.trial_data['real_switch_time'] = self.win.lastFrameT - self.trial_start
+        #print(self.trial_table['switch_time'][self.trial_counter])
+        #print(self.last_beep_time - self.trial_data['real_switch_time'])
 
     # second_target functions
     def trial_timer_elapsed(self):
