@@ -1,4 +1,5 @@
 from datetime import datetime as dt
+import os.path as op
 import numpy as np
 from scipy import signal as sg
 from transitions import Machine
@@ -71,8 +72,7 @@ class StateMachine(Machine):
             {'source': 'post_trial',
              'trigger': 'step',
              'conditions': ['post_timer_elapsed',  # Once n milliseconds have passed...
-                            'trial_counter_exceed_table',  # And the number of trials exceeds trial table
-                            'wait_for_press'],  # wait until at least *something* pressed
+                            'trial_counter_exceed_table'],  # And the number of trials exceeds trial table
              'after': ['close_n_such'],  # Clean up, we're done here
              'dest': 'cleanup'},
 
@@ -154,11 +154,16 @@ class StateMachine(Machine):
             self.device = Keyboard(keys=chars, clock_source=self.global_clock)
 
         # by-trial data
-        with open(dt.now().strftime("%Y%m%d%H%M%S") + self.subject + '.csv', 'w') as f:
-            f.write('subject,first_target,second_target,switch_time\n')
+        self.summary_file_name = 'id_' + settings['subject'] + '_' + \
+                                 op.splitext(op.basename(settings['trial_table']))[0] + \
+                                 dt.now().strftime('_%H%M%S') + '.csv'
+        with open(self.summary_file_name, 'w') as f:
+            f.write('index,subject,first_target,second_target,switch_time\n')
 
-        self.subject = settings['subject']
-        trial_data = {'subject': self.subject, }
+        trial_data = {'index': 0, 'subject': settings['subject'], 'first_target': np.nan,
+                      'second_target': np.nan, 'switch_time': np.nan,
+                      'real_switch_time': np.nan, 'first_press': np.nan,
+                      'first_press_time': np.nan}
 
         # extras
         self.frame_period = 1/self.win.getActualFrameRate()
@@ -246,7 +251,7 @@ class StateMachine(Machine):
         [t.setFillColor((-0.3, 0.7, -0.3) if self.correct_answer else (0.7, -0.3, -0.3)) for t in self.targets]
 
     def sched_feedback_timer_reset(self):
-        self.win.callOnFlip(self.feedback_timer.reset, 0.3) # 300 ms feedback?
+        self.win.callOnFlip(self.feedback_timer.reset, 0.3 - self.frame_period) # 300 ms feedback?
 
     # feedback functions
     def feedback_timer_elapsed(self):
@@ -264,7 +269,7 @@ class StateMachine(Machine):
         self.trial_counter += 1
 
     def sched_post_timer_reset(self):
-        self.win.callOnFlip(self.post_timer.reset, 0.1) # can be short (500 ms already built in via audio delay)
+        self.win.callOnFlip(self.post_timer.reset, 0.1 - self.frame_period) # can be short (500 ms already built in via audio delay)
 
     # post_trial functions
     def post_timer_elapsed(self):
