@@ -150,11 +150,10 @@ class StateMachine(Machine):
 
         # Input device
         if settings['forceboard']:
-            self.device = ForceTransducers(clock=self.global_clock)
+            self.device = MultiprocessInput(ForceTransducers, clock=self.global_clock)
         else:
             keys = 'awefvbhuil'
-            chars = list(keys)
-            self.device = MultiprocessInput(Keyboard, keys=chars, clock=self.global_clock)
+            self.device = MultiprocessInput(Keyboard, keys=list(keys), clock=self.global_clock)
             self.keyboard_state = [False] * 10
 
         # by-trial data

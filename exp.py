@@ -1,4 +1,5 @@
 from psychopy import core, gui
+from psychopy.event import Mouse
 from state import StateMachine
 
 if __name__ == '__main__':
@@ -15,12 +16,16 @@ if __name__ == '__main__':
     # could have a second menu, depending on the experiment
     state_machine = StateMachine(settings=settings)
 
+    mouse = Mouse(visible=False, win = state_machine.win)
     with state_machine.device:
         while state_machine.state is not 'cleanup':
             state_machine.input() # collect input
             state_machine.draw_input() # draw the input
             state_machine.step() # evaluate any transitions (incl. drawing, scheduling audio, etc.)
             state_machine.win.flip() # flip frame buffer
+            mouse_clicks = mouse.getPressed()
+            if any(mouse_clicks):
+                state_machine.to_cleanup()
 
     state_machine.win.close()
     core.quit()
