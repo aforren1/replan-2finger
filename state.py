@@ -150,10 +150,10 @@ class StateMachine(Machine):
 
         # Input device
         if settings['forceboard']:
-            self.device = MultiprocessInput(ForceTransducers, clock=self.global_clock)
+            self.device = MultiprocessInput(ForceTransducers, clock=self.global_clock.getTime)
         else:
             keys = 'awefvbhuil'
-            self.device = MultiprocessInput(Keyboard, keys=list(keys), clock=self.global_clock)
+            self.device = MultiprocessInput(Keyboard, keys=list(keys), clock=self.global_clock.getTime)
             self.keyboard_state = [False] * 10
 
         # by-trial data
@@ -288,7 +288,7 @@ class StateMachine(Machine):
     def remove_feedback(self):
         # remove targets, make sure everything is proper colour
         [t.setAutoDraw(False) for t in self.targets]
-        [t.setFillColor([0.7, 1, 1]) for t in self.targets]
+        [t.setFillColor([0, 0, 0]) for t in self.targets]
         self.good.autoDraw = False
         self.too_fast.autoDraw = False
         self.too_slow.autoDraw = False
