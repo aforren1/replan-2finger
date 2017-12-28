@@ -111,7 +111,7 @@ class StateMachine(Machine):
         self.win.recordFrameIntervals = True
 
         # targets
-        poses = [(-0.5, 0), (0.5, 0)]  # vary just on x-axis
+        poses = [(-0.6, 0), (0.6, 0)]  # vary just on x-axis
         self.targets = [visual.Rect(self.win, width=1, height=1, fillColor=[0, 0, 0], pos=p, lineWidth=0) 
                         for p in poses]
 
@@ -143,7 +143,7 @@ class StateMachine(Machine):
         self.beep = sound.Sound(np.transpose(np.vstack((tmp, tmp))),
                                 blockSize=16)
         self.coin = sound.Sound('coin.wav', stereo=True)  # TODO: check bug in auto-config of sounddevice (stereo = -1)
-
+        self.coin.play()
         # Input device
         if settings['forceboard']:
             self.device = MultiprocessInput(ForceTransducers, clock=self.global_clock.getTime)
@@ -257,7 +257,7 @@ class StateMachine(Machine):
         print(delta)
         good_timing = False
         if delta > 0.075:
-            print('too slow')
+            self.too_slow.autoDraw = True
         elif delta < -0.075:
             self.too_fast.autoDraw = True
         elif np.isnan(self.first_press):
@@ -314,7 +314,6 @@ class StateMachine(Machine):
         # collect input
         timestamp, data = self.device.read()  # need to correct timestamp
         if timestamp is not None:
-            print(data)
             if self.device.device.__name__ is 'Keyboard':
                 for i, j in zip(data[0], data[1]):
                     self.keyboard_state[j[0]] = i[0]

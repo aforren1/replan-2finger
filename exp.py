@@ -22,10 +22,10 @@ if __name__ == '__main__':
             state_machine.input() # collect input
             state_machine.draw_input() # draw the input
             state_machine.step() # evaluate any transitions (incl. drawing, scheduling audio, etc.)
-            state_machine.win.flip() # flip frame buffer
             mouse_clicks = mouse.getPressed()
             if any(mouse_clicks):
                 state_machine.to_cleanup()
+            state_machine.win.flip() # flip frame buffer
 
     state_machine.win.close()
     core.quit()
