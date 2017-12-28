@@ -6,9 +6,9 @@ from transitions import Machine
 import pandas as pd
 import csv
 from toon.audio import beep_sequence
-from toon.input import Keyboard, ForceTransducers
+from toon.input import Keyboard, ForceTransducers, MultiprocessInput
 from psychopy import prefs
-
+# we need to set prefs *before* setting the other stuff
 prefs.general['audioLib'] = ['sounddevice']
 from psychopy import core, visual, sound
 
@@ -39,14 +39,14 @@ class StateMachine(Machine):
                        'first_press_reset'],
              'dest': 'enter_trial'},
 
-            # wait for 500 ms until showing first image (to coincide w/ real audio onset)
+            # wait for 100 ms until showing first image (to coincide w/ real audio onset)
             {'source': 'enter_trial',
              'trigger': 'step',
-             'conditions': 'trial_timer_passed_first',  # i.e. 500 ms - ~16ms elapsed
+             'conditions': 'trial_timer_passed_first',  # i.e. 100 ms - ~16ms elapsed
              'after': 'show_first_target',  # after state change (after conditions are evaluated, run once)
              'dest': 'first_target'},
 
-            # after 500 ms, show the first image
+            # after 100 ms, show the first image
             {'source': 'first_target',
              'trigger': 'step',
              'conditions': 'trial_timer_passed_second',  # i.e. the proposed prep time in table elapsed
@@ -115,7 +115,8 @@ class StateMachine(Machine):
 
         # targets
         poses = [(-0.25, 0), (0.25, 0)]  # vary just on x-axis
-        self.targets = [visual.Circle(self.win, size=0.3, fillColor=[0.7, 1, 1], pos=p) for p in poses]
+        self.targets = [visual.Rect(self.win, width=0.5, height=1, fillColor=[0, 0, 0], pos=p, lineWidth=0) 
+                        for p in poses]
 
         # push feedback
         self.push_feedback = visual.Circle(self.win, size=0.1, fillColor=[-1, -1, -1], pos=(0, 0),
@@ -149,13 +150,12 @@ class StateMachine(Machine):
 
         # Input device
         if settings['forceboard']:
-            self.device = None
+            self.device = ForceTransducers(clock=self.global_clock)
         else:
             keys = 'awefvbhuil'
-            chars = []
-            for key in keys:
-                chars.append(key)
-            self.device = Keyboard(keys=chars, clock_source=self.global_clock)
+            chars = list(keys)
+            self.device = MultiprocessInput(Keyboard, keys=chars, clock=self.global_clock)
+            self.keyboard_state = [False] * 10
 
         # by-trial data
         self.summary_file_name = 'id_' + settings['subject'] + '_' + \
@@ -173,7 +173,7 @@ class StateMachine(Machine):
                            'correct': np.nan}
 
         # extras
-        self.frame_period = 1 / self.win.getActualFrameRate()
+        self.frame_period = self.win.monitorFramePeriod
         self.trial_start = 0
         self.trial_counter = 0  # start at zero b/c zero indexing
         self.trial_input_buffer = np.full((600, 10), np.nan)
@@ -210,10 +210,10 @@ class StateMachine(Machine):
 
     # enter_trial functions
     def trial_timer_passed_first(self):
-        # determine if 500 ms has elapsed
+        # determine if 100 ms has elapsed
         # The timer is started at last_beep_time + 0.2
         # TODO: Think about this one
-        return (self.last_beep_time + 0.2 - self.trial_timer.getTime() + self.frame_period) >= 0.5
+        return (self.last_beep_time + 0.2 - self.trial_timer.getTime() + self.frame_period) >= 0.1
 
     def show_first_target(self):
         # This is tricky -- if the condition evaluates to false, draw the left target
@@ -299,7 +299,7 @@ class StateMachine(Machine):
 
     def sched_post_timer_reset(self):
         self.win.callOnFlip(self.post_timer.reset,
-                            0.1 - self.frame_period)  # can be short (500 ms already built in via audio delay)
+                            0.1 - self.frame_period)  # can be short (100 ms already built in via audio delay)
 
     # post_trial functions
     def post_timer_elapsed(self):
@@ -317,24 +317,27 @@ class StateMachine(Machine):
 
     def input(self):
         # collect input
-        data, timestamp = self.device.read()  # need to correct timestamp
-        if data is not None:
-            current_nans = np.isnan(self.trial_input_buffer)
-            if current_nans.any():
-                next_index = np.where(current_nans)[0][0]
-                self.trial_input_buffer[next_index, :] = data
-                self.trial_input_time_buffer[next_index, :] = timestamp
-            if type(self.device).__name__ is 'Keyboard':
-                self.device_on = data.any()  # colour in if any buttons pressed
+        timestamp, data = self.device.read()  # need to correct timestamp
+        if timestamp is not None:
+            print(data)
+            if self.device.device.__name__ is 'Keyboard':
+                for i, j in zip(data[0], data[1]):
+                    self.keyboard_state[j[0]] = i[0]
+                self.device_on = any(self.keyboard_state)  # colour in if any buttons pressed
                 if np.isnan(self.first_press) and self.device_on:
-                    self.first_press = np.where(data)[0][0] + 1
+                    self.first_press = data[1]
                     self.first_press_time = timestamp - self.trial_start
                     print((self.first_press, self.first_press_time))
 
 
-            elif type(self.device).__name__ is 'ForceTransducers':
+            elif self.device.device.__name__ is 'ForceTransducers':
                 # see sg.medfilt(trial_input_buffer, kernel_size=(odd, 1))
                 pass
+                current_nans = np.isnan(self.trial_input_buffer)
+                if current_nans.any():
+                    next_index = np.where(current_nans)[0][0]
+                    self.trial_input_buffer[next_index, :] = data
+                    self.trial_input_time_buffer[next_index, :] = timestamp
 
     def draw_input(self):
         self.push_feedback.setFillColor([0, 0, 0] if self.device_on else [-1, -1, -1])
