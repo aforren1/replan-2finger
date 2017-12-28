@@ -18,14 +18,13 @@ if __name__ == '__main__':
 
     mouse = Mouse(visible=False, win = state_machine.win)
     with state_machine.device:
+        state_machine.coin.play()
         while state_machine.state is not 'cleanup':
             state_machine.input() # collect input
             state_machine.draw_input() # draw the input
             state_machine.step() # evaluate any transitions (incl. drawing, scheduling audio, etc.)
-            mouse_clicks = mouse.getPressed()
-            if any(mouse_clicks):
+            if any(mouse.getPressed()):
                 state_machine.to_cleanup()
             state_machine.win.flip() # flip frame buffer
-
     state_machine.win.close()
     core.quit()

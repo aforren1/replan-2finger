@@ -5,10 +5,10 @@ import numpy as np
 from scipy import signal as sg
 from transitions import Machine
 import pandas as pd
-from psychopy import core, visual, sound
+from psychopy import clock, core, visual, sound
 from toon.audio import beep_sequence
 from toon.input import Keyboard, ForceTransducers, MultiprocessInput
-
+from utils import MonoClock
 
 class StateMachine(Machine):
     """
@@ -87,7 +87,7 @@ class StateMachine(Machine):
         Machine.__init__(self, states=states, transitions=transitions, initial='pretrial')
 
         # clocks and timers
-        self.global_clock = core.monotonicClock  # gives us a time that we can relate to the input device
+        self.global_clock = MonoClock()  # gives us a time that we can relate to the input device
         self.trial_timer = core.CountdownTimer()  # gives us the time until the end of the trial (counts down)
         self.feedback_timer = core.CountdownTimer()  # gives time that feedback shows (counts down)
         self.post_timer = core.CountdownTimer()  # gives time between trials (counts down)
@@ -143,7 +143,6 @@ class StateMachine(Machine):
         self.beep = sound.Sound(np.transpose(np.vstack((tmp, tmp))),
                                 blockSize=16)
         self.coin = sound.Sound('coin.wav', stereo=True)  # TODO: check bug in auto-config of sounddevice (stereo = -1)
-        self.coin.play()
         # Input device
         if settings['forceboard']:
             self.device = MultiprocessInput(ForceTransducers, clock=self.global_clock.getTime)
