@@ -1,16 +1,13 @@
 from datetime import datetime as dt
+import csv
 import os.path as op
 import numpy as np
 from scipy import signal as sg
 from transitions import Machine
 import pandas as pd
-import csv
+from psychopy import core, visual, sound
 from toon.audio import beep_sequence
 from toon.input import Keyboard, ForceTransducers, MultiprocessInput
-from psychopy import prefs
-# we need to set prefs *before* setting the other stuff
-prefs.general['audioLib'] = ['sounddevice']
-from psychopy import core, visual, sound
 
 
 class StateMachine(Machine):
@@ -114,8 +111,8 @@ class StateMachine(Machine):
         self.win.recordFrameIntervals = True
 
         # targets
-        poses = [(-0.25, 0), (0.25, 0)]  # vary just on x-axis
-        self.targets = [visual.Rect(self.win, width=0.5, height=1, fillColor=[0, 0, 0], pos=p, lineWidth=0) 
+        poses = [(-0.5, 0), (0.5, 0)]  # vary just on x-axis
+        self.targets = [visual.Rect(self.win, width=1, height=1, fillColor=[0, 0, 0], pos=p, lineWidth=0) 
                         for p in poses]
 
         # push feedback
@@ -141,11 +138,10 @@ class StateMachine(Machine):
                             inter_click_interval=0.4,
                             num_clicks=4,
                             dur_clicks=0.04)
-        self.last_beep_time = round(0.5 + (0.4 * 3), 2)
+        self.last_beep_time = round(0.1 + (0.4 * 3), 2)
 
         self.beep = sound.Sound(np.transpose(np.vstack((tmp, tmp))),
-                                blockSize=16,
-                                hamming=False)
+                                blockSize=16)
         self.coin = sound.Sound('coin.wav', stereo=True)  # TODO: check bug in auto-config of sounddevice (stereo = -1)
 
         # Input device
