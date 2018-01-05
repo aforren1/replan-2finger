@@ -16,7 +16,7 @@ if __name__ == '__main__':
     # could have a second menu, depending on the experiment
     state_machine = StateMachine(settings=settings)
 
-    mouse = Mouse(visible=False, win = state_machine.win)
+    mouse = Mouse(visible=False, win=state_machine.win)
     with state_machine.device:
         state_machine.coin.play()
         while state_machine.state is not 'cleanup':
