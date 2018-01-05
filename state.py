@@ -90,7 +90,6 @@ class StateMachine(Machine):
         Machine.__init__(self, states=states, transitions=transitions, initial='pretrial')
 
         # clocks and timers
-        #self.global_clock = MonoClock()  # gives us a time that we can relate to the input device
         self.global_clock = clock.monotonicClock
         self.trial_timer = core.CountdownTimer()  # gives us the time until the end of the trial (counts down)
         self.feedback_timer = core.CountdownTimer()  # gives time that feedback shows (counts down)
@@ -146,7 +145,7 @@ class StateMachine(Machine):
         self.last_beep_time = round(0.1 + (0.4 * 3), 2)
 
         self.beep = sound.Sound(np.transpose(np.vstack((tmp, tmp))),
-                                blockSize=32)
+                                blockSize=16, hamming=False)
         self.coin = sound.Sound('coin.wav', stereo=True)  # TODO: check bug in auto-config of sounddevice (stereo = -1)
         # Input device
         if settings['forceboard']:
@@ -231,7 +230,7 @@ class StateMachine(Machine):
 
     def log_switch_time(self):
         self.trial_data['real_switch_time'] = self.win.lastFrameT - self.trial_start
-        # print(self.trial_table['switch_time'][self.trial_counter])
+        #print(self.trial_table['switch_time'][self.trial_counter])
         # print(self.last_beep_time - self.trial_data['real_switch_time'])
 
     # second_target functions
@@ -258,7 +257,6 @@ class StateMachine(Machine):
     def check_answer(self):
         correct_answer = self.trial_table['second'][self.trial_counter] == self.first_press
         delta = self.first_press_time - self.last_beep_time
-        print(delta)
         good_timing = False
         if delta > 0.075:
             self.too_slow.autoDraw = True
@@ -323,8 +321,8 @@ class StateMachine(Machine):
                     self.keyboard_state[j[0]] = i[0]
                 self.device_on = any(self.keyboard_state)  # colour in if any buttons pressed
                 if np.isnan(self.first_press) and self.device_on:
-                    self.first_press = data[1]
-                    self.first_press_time = timestamp - self.trial_start
+                    self.first_press = data[1][0][0]
+                    self.first_press_time = (timestamp - self.trial_start)[0]
                     print((self.first_press, self.first_press_time))
 
 
