@@ -116,26 +116,27 @@ class StateMachine(Machine):
 
         # targets
         poses = [(-0.6, 0), (0.6, 0)]  # vary just on x-axis
-        self.targets = [visual.Rect(self.win, width=1, height=1, fillColor=[0, 0, 0], pos=p, lineWidth=0) 
-                        for p in poses]
+        names = ['left_target', 'right_target']
+        self.targets = [visual.Rect(self.win, width=1, height=1, fillColor=[0, 0, 0], pos=p, lineWidth=0, name=n)
+                        for p, n in zip(poses, names)]
 
         # push feedback
         self.push_feedback = visual.Circle(self.win, size=0.1, fillColor=[-1, -1, -1], pos=(0, 0),
-                                           autoDraw=True, autoLog=False)
+                                           autoDraw=True, autoLog=False, name='push_feedback')
         # fixation
         self.fixation = visual.Circle(self.win, size=0.05, fillColor=[1, 1, 1], pos=(0, 0),
-                                      autoDraw=True)
+                                      autoDraw=True, name='fixation')
 
         # text
         self.good = visual.TextStim(self.win, text=u'Good timing!', pos=(0, 0.4),
                                     units='norm', color=(-1, 1, 0.2), height=0.1,
-                                    alignHoriz='center', alignVert='center', autoLog=True)
+                                    alignHoriz='center', alignVert='center', autoLog=True, name='good_text')
         self.too_slow = visual.TextStim(self.win, text=u'Too slow.', pos=(0, 0.4),
                                         units='norm', color=(1, -1, -1), height=0.1,
-                                        alignHoriz='center', alignVert='center', autoLog=True)
+                                        alignHoriz='center', alignVert='center', autoLog=True, name='slow_text')
         self.too_fast = visual.TextStim(self.win, text=u'Too fast.', pos=(0, 0.4),
                                         units='norm', color=(1, -1, -1), height=0.1,
-                                        alignHoriz='center', alignVert='center', autoLog=True)
+                                        alignHoriz='center', alignVert='center', autoLog=True, name='fast_text')
 
         # audio
         tmp = beep_sequence(click_freq=(523.251, 659.255, 783.991, 1046.5),
