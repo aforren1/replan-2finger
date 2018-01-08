@@ -6,12 +6,13 @@ from scipy import signal as sg
 from transitions import Machine
 import pandas as pd
 from psychopy import prefs
+
 # we need to set prefs *before* setting the other stuff
 prefs.general['audioLib'] = ['sounddevice']
 from psychopy import clock, core, visual, sound
 from toon.audio import beep_sequence
 from toon.input import Keyboard, ForceTransducers, MultiprocessInput
-# from toon.input.clock import MonoClock
+
 
 class StateMachine(Machine):
     """
@@ -231,7 +232,7 @@ class StateMachine(Machine):
 
     def log_switch_time(self):
         self.trial_data['real_switch_time'] = self.win.lastFrameT - self.trial_start
-        #print(self.trial_table['switch_time'][self.trial_counter])
+        # print(self.trial_table['switch_time'][self.trial_counter])
         # print(self.last_beep_time - self.trial_data['real_switch_time'])
 
     # second_target functions
