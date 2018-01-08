@@ -146,8 +146,7 @@ class StateMachine(Machine):
                             dur_clicks=0.04)
         self.last_beep_time = round(0.1 + (0.4 * 3), 2)
 
-        self.beep = sound.Sound(np.transpose(np.vstack((tmp, tmp))),
-                                blockSize=16, hamming=False)
+        self.beep = sound.Sound(tmp, blockSize=16, hamming=False)
         self.coin = sound.Sound('coin.wav', stereo=True)  # TODO: check bug in auto-config of sounddevice (stereo = -1)
         # Input device
         if settings['forceboard']:
