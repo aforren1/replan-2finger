@@ -22,7 +22,7 @@ class StateMachine(Machine):
     """
 
     def __init__(self, settings=None):
-        states = ['countdown',
+        states = ['wait',
                   'pretrial',
                   'enter_trial',
                   'first_target',
@@ -31,11 +31,10 @@ class StateMachine(Machine):
                   'post_trial',
                   'cleanup']
         transitions = [
-            {'source': 'countdown',
+            {'source': 'wait',
              'trigger': 'step',
-             'prepare': 'update_countdown',
-             'conditions': 'countdown_elapsed',
-             'after': 'remove_countdown',
+             'conditions': 'wait_for_press',
+             'after': 'remove_text',
              'dest': 'pretrial'},
 
             {'source': 'pretrial',
@@ -95,7 +94,7 @@ class StateMachine(Machine):
                             'wait_for_press'],
              'dest': 'pretrial'}
         ]
-        Machine.__init__(self, states=states, transitions=transitions, initial='countdown')
+        Machine.__init__(self, states=states, transitions=transitions, initial='wait')
 
         # clocks and timers
         self.global_clock = clock.monotonicClock
@@ -137,11 +136,11 @@ class StateMachine(Machine):
                                       autoDraw=False, name='fixation')
 
         # text
-        self.countdown_text = visual.TextStim(self.win, text=' ', pos=(0, 0),
-                                              units='norm', color=(1, 1, 1), height=0.3,
-                                              alignHoriz='center', alignVert='center', name='countdown_text',
-                                              autoLog=False)
-        self.countdown_text.setAutoDraw(True)
+        self.wait_text = visual.TextStim(self.win, text='Press a key to start.', pos=(0, 0),
+                                              units='norm', color=(1, 1, 1), height=0.2,
+                                              alignHoriz='center', alignVert='center', name='wait_text',
+                                              autoLog=False, wrapWidth=2)
+        self.wait_text.autoDraw = True
         self.good = visual.TextStim(self.win, text=u'Good timing!', pos=(0, 0.4),
                                     units='norm', color=(-1, 1, 0.2), height=0.1,
                                     alignHoriz='center', alignVert='center', autoLog=True, name='good_text')
@@ -198,16 +197,9 @@ class StateMachine(Machine):
         self.correct_answer = False
         self.countdown_timer.reset(6)
 
-    # countdown functions
-    def update_countdown(self):
-        self.countdown_text.text = str('{0:.2f}'.format(self.countdown_timer.getTime()))
-
-    def countdown_elapsed(self):
-        # check if the countdown timer has passed zero
-        return self.countdown_timer.getTime() <= 0
-
-    def remove_countdown(self):
-        self.countdown_text.autoDraw = False
+    # wait functions
+    def remove_text(self):
+        self.wait_text.autoDraw = False
         self.push_feedback.autoDraw = True
         self.fixation.autoDraw = True
 
