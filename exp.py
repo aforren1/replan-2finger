@@ -19,6 +19,7 @@ if __name__ == '__main__':
     mouse = Mouse(visible=False, win=state_machine.win)
     state_machine.coin.play()
     with state_machine.device:
+        state_machine.win.flip()
         while state_machine.state is not 'cleanup':
             state_machine.input() # collect input
             state_machine.draw_input() # draw the input
