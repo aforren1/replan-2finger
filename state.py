@@ -173,7 +173,7 @@ class StateMachine(Machine):
                                  op.splitext(op.basename(settings['trial_table']))[0] + \
                                  dt.now().strftime('_%H%M%S') + '.csv'
         self.csv_header = ['index', 'subject', 'first_target', 'second_target',
-                           'real_switch_time', 'first_press', 'first_press_time', 'correct']
+                           'real_switch_time', 'first_press', 'first_press_time', 'correct', 'prep_time']
         with open(self.summary_file_name, 'w') as f:
             writer = csv.DictWriter(f, fieldnames=self.csv_header, lineterminator='\n')
             writer.writeheader()
@@ -181,7 +181,7 @@ class StateMachine(Machine):
         self.trial_data = {'index': np.nan, 'subject': settings['subject'], 'first_target': np.nan,
                            'second_target': np.nan, 'real_switch_time': np.nan,
                            'first_press': np.nan, 'first_press_time': np.nan,
-                           'correct': np.nan}
+                           'correct': np.nan, 'prep_time': np.nan}
 
         # extras
         self.frame_period = self.win.monitorFramePeriod
@@ -259,12 +259,13 @@ class StateMachine(Machine):
 
     def record_data(self):
         self.trial_data['index'] = self.trial_counter
-        self.trial_data['first_target'] = self.trial_table['first'][self.trial_counter]
-        self.trial_data['second_target'] = self.trial_table['second'][self.trial_counter]
+        self.trial_data['first_target'] = int(self.trial_table['first'][self.trial_counter])
+        self.trial_data['second_target'] = int(self.trial_table['second'][self.trial_counter])
         # real_switch_time logged in log_switch_time
-        self.trial_data['first_press'] = self.first_press
+        self.trial_data['first_press'] = int(self.first_press)
         self.trial_data['first_press_time'] = self.first_press_time
         self.trial_data['correct'] = int(self.correct_answer)
+        self.trial_data['prep_time'] = self.first_press_time - self.trial_data['real_switch_time']
         # now write data
         with open(self.summary_file_name, 'a') as f:
             writer = csv.DictWriter(f, fieldnames=self.csv_header, lineterminator='\n')
@@ -272,7 +273,7 @@ class StateMachine(Machine):
 
         self.trial_data.update({'index': np.nan, 'first_target': np.nan, 'second_target': np.nan,
                                 'real_switch_time': np.nan, 'first_press': np.nan,
-                                'first_press_time': np.nan, 'correct': np.nan})
+                                'first_press_time': np.nan, 'correct': np.nan, 'prep_time': np.nan})
 
     def check_answer(self):
         correct_answer = self.trial_table['second'][self.trial_counter] == self.first_press
