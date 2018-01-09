@@ -22,7 +22,8 @@ class StateMachine(Machine):
     """
 
     def __init__(self, settings=None):
-        states = ['pretrial',
+        states = ['countdown',
+                  'pretrial',
                   'enter_trial',
                   'first_target',
                   'second_target',
@@ -30,6 +31,12 @@ class StateMachine(Machine):
                   'post_trial',
                   'cleanup']
         transitions = [
+            {'source': 'countdown',
+             'trigger': 'step',
+             'prepare': 'update_countdown',
+             'conditions': 'countdown_elapsed',
+             'after': 'remove_countdown',
+             'dest': 'pretrial'},
 
             {'source': 'pretrial',
              'trigger': 'step',
@@ -88,13 +95,14 @@ class StateMachine(Machine):
                             'wait_for_press'],
              'dest': 'pretrial'}
         ]
-        Machine.__init__(self, states=states, transitions=transitions, initial='pretrial')
+        Machine.__init__(self, states=states, transitions=transitions, initial='countdown')
 
         # clocks and timers
         self.global_clock = clock.monotonicClock
         self.trial_timer = core.CountdownTimer()  # gives us the time until the end of the trial (counts down)
         self.feedback_timer = core.CountdownTimer()  # gives time that feedback shows (counts down)
         self.post_timer = core.CountdownTimer()  # gives time between trials (counts down)
+        self.countdown_timer = core.CountdownTimer()  # time until block starts
 
         # trial table
         try:
@@ -123,12 +131,17 @@ class StateMachine(Machine):
 
         # push feedback
         self.push_feedback = visual.Circle(self.win, size=0.1, fillColor=[-1, -1, -1], pos=(0, 0),
-                                           autoDraw=True, autoLog=False, name='push_feedback')
+                                           autoDraw=False, autoLog=False, name='push_feedback')
         # fixation
         self.fixation = visual.Circle(self.win, size=0.05, fillColor=[1, 1, 1], pos=(0, 0),
-                                      autoDraw=True, name='fixation')
+                                      autoDraw=False, name='fixation')
 
         # text
+        self.countdown_text = visual.TextStim(self.win, text=' ', pos=(0, 0),
+                                              units='norm', color=(1, 1, 1), height=0.3,
+                                              alignHoriz='center', alignVert='center', name='countdown_text',
+                                              autoLog=False)
+        self.countdown_text.setAutoDraw(True)
         self.good = visual.TextStim(self.win, text=u'Good timing!', pos=(0, 0.4),
                                     units='norm', color=(-1, 1, 0.2), height=0.1,
                                     alignHoriz='center', alignVert='center', autoLog=True, name='good_text')
@@ -183,6 +196,20 @@ class StateMachine(Machine):
         self.right_val = self.trial_table[['first', 'second']].max(axis=0).max()
         self.device_on = False
         self.correct_answer = False
+        self.countdown_timer.reset(6)
+
+    # countdown functions
+    def update_countdown(self):
+        self.countdown_text.text = str('{0:.2f}'.format(self.countdown_timer.getTime()))
+
+    def countdown_elapsed(self):
+        # check if the countdown timer has passed zero
+        return self.countdown_timer.getTime() <= 0
+
+    def remove_countdown(self):
+        self.countdown_text.autoDraw = False
+        self.push_feedback.autoDraw = True
+        self.fixation.autoDraw = True
 
     # pretrial functions
     def wait_for_release(self):
