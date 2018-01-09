@@ -44,8 +44,11 @@ def mk_block(name='testx.csv', pair=[0, 4], num_trials=120,
     pair_frame = pd.DataFrame(all_pairs, columns = ['first', 'second', 'switch_time'])
     pair_frame.to_csv(name, index=False, float_format='%.4f')
 
-mk_block('block1.csv', pair=[0, 4])
-mk_block('block2.csv', pair=[0, 9])
-mk_block('block3.csv', pair=[5, 9])
-mk_block('block4.csv', pair=[4, 9])
-mk_block('block5.csv', pair=[0, 5])
+def mk_blocks(fingers=[0, 4, 5, 9], blocks_per_pair=2):
+    pairs = [[a, b] for a in fingers for b in fingers if (a != b & b < a)]
+    np.random.shuffle(pairs)
+    pairs = np.repeat(pairs, blocks_per_pair, 0)
+    for i, pair in enumerate(pairs):
+        mk_block('block' + str(i) + '.csv', pair=pair)
+
+mk_blocks()
