@@ -43,3 +43,9 @@ def mk_block(name='testx.csv', pair=[0, 4], num_trials=120,
     all_pairs = np.vstack((practice, all_pairs))
     pair_frame = pd.DataFrame(all_pairs, columns = ['first', 'second', 'switch_time'])
     pair_frame.to_csv(name, index=False, float_format='%.4f')
+
+mk_block('block1.csv', pair=[0, 4])
+mk_block('block2.csv', pair=[0, 9])
+mk_block('block3.csv', pair=[5, 9])
+mk_block('block4.csv', pair=[4, 9])
+mk_block('block5.csv', pair=[0, 5])
