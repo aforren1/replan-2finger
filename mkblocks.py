@@ -6,7 +6,7 @@ import pandas as pd
 
 
 def mk_block(name='testx.csv', pair=[0, 4], num_trials=120,
-             prop_switch=0.3, min_max_time=(0.05, 0.3), frame_rate=60):
+             prop_switch=0.35, min_max_time=(0.1, 0.45), frame_rate=60):
     num_switch_trials = int(num_trials * prop_switch)
     num_other_trials = int(num_trials - num_switch_trials)
     if num_switch_trials % 2 != 0:
