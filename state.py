@@ -125,7 +125,7 @@ class StateMachine(Machine):
         # targets
         poses = [(-0.6, 0), (0.6, 0)]  # vary just on x-axis
         names = ['left_target', 'right_target']
-        self.targets = [visual.Rect(self.win, width=1, height=1, fillColor=[0, 0, 0], pos=p, lineWidth=0, name=n)
+        self.targets = [visual.Rect(self.win, width=0.5, height=0.5, fillColor=[0, 0, 0], pos=p, lineWidth=0, name=n)
                         for p, n in zip(poses, names)]
 
         # push feedback
