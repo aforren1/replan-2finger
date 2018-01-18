@@ -262,7 +262,7 @@ class StateMachine(Machine):
         self.trial_data['first_target'] = int(self.trial_table['first'][self.trial_counter])
         self.trial_data['second_target'] = int(self.trial_table['second'][self.trial_counter])
         # real_switch_time logged in log_switch_time
-        self.trial_data['first_press'] = int(self.first_press)
+        self.trial_data['first_press'] = self.first_press
         self.trial_data['first_press_time'] = self.first_press_time
         self.trial_data['correct'] = int(self.correct_answer)
         self.trial_data['prep_time'] = self.first_press_time - self.trial_data['real_switch_time']
