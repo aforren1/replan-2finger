@@ -50,7 +50,7 @@ class StateMachine(StateMachine):
                                  allowGUI=False,
                                  colorSpace='rgb',
                                  color=(-1, -1, -1),
-                                 useFBO=True)
+                                 useFBO=False)
         self.win.recordFrameIntervals = True
 
         # targets
