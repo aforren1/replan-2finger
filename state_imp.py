@@ -94,12 +94,10 @@ class StateMachine(StateMachine):
         self.coin = sound.Sound('coin.wav', stereo=True)
         # Input device
         if settings['forceboard']:
-            self.device = MultiprocessInput(
-                ForceTransducers, clock=self.global_clock.getTime)
+            self.device = MultiprocessInput(ForceTransducers, clock=self.global_clock.getTime)
         else:
             keys = 'awefvbhuil'
-            self.device = MultiprocessInput(Keyboard, keys=list(
-                keys), clock=self.global_clock.getTime)
+            self.device = MultiprocessInput(Keyboard, keys=list(keys), clock=self.global_clock.getTime)
             self.keyboard_state = [False] * 10
 
         # by-trial data
