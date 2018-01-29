@@ -3,9 +3,9 @@ import csv
 import os.path as op
 import numpy as np
 from scipy import signal as sg
-from transitions import Machine
 import pandas as pd
 from psychopy import prefs
+from state_dec import StateMachine
 
 # we need to set prefs *before* setting the other stuff
 prefs.general['audioLib'] = ['sounddevice']
@@ -14,7 +14,7 @@ from toon.audio import beep_sequence
 from toon.input import Keyboard, ForceTransducers, MultiprocessInput
 
 
-class StateMachine(Machine):
+class StateMachine(StateMachine):
     """
     `sched_` denotes things that are scheduled to coincide w/ the frame buffer flip
     Remember to account for lag in drawing (plan on drawing ~ 1 frame (e.g. 15ms) before onset)
@@ -22,85 +22,16 @@ class StateMachine(Machine):
     """
 
     def __init__(self, settings=None):
-        states = ['wait',
-                  'pretrial',
-                  'enter_trial',
-                  'first_target',
-                  'second_target',
-                  'feedback',
-                  'post_trial',
-                  'cleanup']
-        transitions = [
-            {'source': 'wait',
-             'trigger': 'step',
-             'conditions': 'wait_for_press',
-             'after': 'remove_text',
-             'dest': 'pretrial'},
 
-            {'source': 'pretrial',
-             'trigger': 'step',
-             'conditions': 'wait_for_release',
-             'after': ['sched_beep',
-                       'sched_trial_timer_reset',
-                       'sched_record_trial_start',
-                       'first_press_reset'],
-             'dest': 'enter_trial'},
-
-            # wait for 100 ms until showing first image (to coincide w/ real audio onset)
-            {'source': 'enter_trial',
-             'trigger': 'step',
-             'conditions': 'trial_timer_passed_first',  # i.e. 100 ms - ~16ms elapsed
-             'after': 'show_first_target',  # after state change (after conditions are evaluated, run once)
-             'dest': 'first_target'},
-
-            # after 100 ms, show the first image
-            {'source': 'first_target',
-             'trigger': 'step',
-             'conditions': 'trial_timer_passed_second',  # i.e. the proposed prep time in table elapsed
-             'after': 'show_second_target',  # after state change (after conditions are evaluated, run once)
-             'dest': 'second_target'},
-
-            # after n extra ms, show second image & wait until beeps are over (plus a little)
-            {'source': 'second_target',
-             'trigger': 'step',
-             'conditions': 'trial_timer_elapsed',  # Beeps have finished + 200ms of mush
-             'after': ['check_answer',
-                       'draw_feedback',  # figure out what was pushed based on buffer
-                       'sched_feedback_timer_reset'],  # set timer for feedback duration
-             'dest': 'feedback'},
-
-            # show feedback for n seconds
-            {'source': 'feedback',
-             'trigger': 'step',
-             'conditions': 'feedback_timer_elapsed',  # Once n milliseconds have passed...
-             'after': ['remove_feedback',  # remove targets and make sure all colours are normal
-                       'record_data',  # save data from trial
-                       'increment_trial_counter',  # add one to the trial counter
-                       'sched_post_timer_reset'],  # # set timer for inter-trial break
-             'dest': 'post_trial'},
-
-            # evaluate whether to exit experiment first...
-            {'source': 'post_trial',
-             'trigger': 'step',
-             'conditions': ['post_timer_elapsed',  # Once n milliseconds have passed...
-                            'trial_counter_exceed_table'],  # And the number of trials exceeds trial table
-             'after': ['close_n_such'],  # Clean up, we're done here
-             'dest': 'cleanup'},
-
-            # ... or move to the next trial
-            {'source': 'post_trial',
-             'trigger': 'step',
-             'conditions': ['post_timer_elapsed',  # If the previous one evaluates to False, we should end up here
-                            'wait_for_press'],
-             'dest': 'pretrial'}
-        ]
-        Machine.__init__(self, states=states, transitions=transitions, initial='wait')
-
+        super(StateMachine, self).__init__()
         # clocks and timers
         self.global_clock = clock.monotonicClock
-        self.trial_timer = core.CountdownTimer()  # gives us the time until the end of the trial (counts down)
-        self.feedback_timer = core.CountdownTimer()  # gives time that feedback shows (counts down)
-        self.post_timer = core.CountdownTimer()  # gives time between trials (counts down)
+        # gives us the time until the end of the trial (counts down)
+        self.trial_timer = core.CountdownTimer()
+        # gives time that feedback shows (counts down)
+        self.feedback_timer = core.CountdownTimer()
+        # gives time between trials (counts down)
+        self.post_timer = core.CountdownTimer()
         self.countdown_timer = core.CountdownTimer()  # time until block starts
 
         # trial table
@@ -137,9 +68,9 @@ class StateMachine(Machine):
 
         # text
         self.wait_text = visual.TextStim(self.win, text='Press a key to start.', pos=(0, 0),
-                                              units='norm', color=(1, 1, 1), height=0.2,
-                                              alignHoriz='center', alignVert='center', name='wait_text',
-                                              autoLog=False, wrapWidth=2)
+                                         units='norm', color=(1, 1, 1), height=0.2,
+                                         alignHoriz='center', alignVert='center', name='wait_text',
+                                         autoLog=False, wrapWidth=2)
         self.wait_text.autoDraw = True
         self.good = visual.TextStim(self.win, text=u'Good timing!', pos=(0, 0.4),
                                     units='norm', color=(-1, 1, 0.2), height=0.1,
@@ -159,13 +90,16 @@ class StateMachine(Machine):
         self.last_beep_time = round(0.1 + (0.4 * 3), 2)
 
         self.beep = sound.Sound(tmp, blockSize=16, hamming=False)
-        self.coin = sound.Sound('coin.wav', stereo=True)  # TODO: check bug in auto-config of sounddevice (stereo = -1)
+        # TODO: check bug in auto-config of sounddevice (stereo = -1)
+        self.coin = sound.Sound('coin.wav', stereo=True)
         # Input device
         if settings['forceboard']:
-            self.device = MultiprocessInput(ForceTransducers, clock=self.global_clock.getTime)
+            self.device = MultiprocessInput(
+                ForceTransducers, clock=self.global_clock.getTime)
         else:
             keys = 'awefvbhuil'
-            self.device = MultiprocessInput(Keyboard, keys=list(keys), clock=self.global_clock.getTime)
+            self.device = MultiprocessInput(Keyboard, keys=list(
+                keys), clock=self.global_clock.getTime)
             self.keyboard_state = [False] * 10
 
         # by-trial data
@@ -175,7 +109,8 @@ class StateMachine(Machine):
         self.csv_header = ['index', 'subject', 'first_target', 'second_target',
                            'real_switch_time', 'first_press', 'first_press_time', 'correct', 'prep_time']
         with open(self.summary_file_name, 'w') as f:
-            writer = csv.DictWriter(f, fieldnames=self.csv_header, lineterminator='\n')
+            writer = csv.DictWriter(
+                f, fieldnames=self.csv_header, lineterminator='\n')
             writer.writeheader()
 
         self.trial_data = {'index': np.nan, 'subject': settings['subject'], 'first_target': np.nan,
@@ -192,7 +127,8 @@ class StateMachine(Machine):
         self.first_press = np.nan
         self.first_press_time = np.nan
         self.left_val = self.trial_table[['first', 'second']].min(axis=0).min()
-        self.right_val = self.trial_table[['first', 'second']].max(axis=0).max()
+        self.right_val = self.trial_table[[
+            'first', 'second']].max(axis=0).max()
         self.device_on = False
         self.correct_answer = False
         self.countdown_timer.reset(6)
@@ -214,7 +150,8 @@ class StateMachine(Machine):
 
     def sched_trial_timer_reset(self):
         # trial ends 200 ms after last beep
-        self.win.callOnFlip(self.trial_timer.reset, self.last_beep_time + 0.2 - self.frame_period)
+        self.win.callOnFlip(self.trial_timer.reset,
+                            self.last_beep_time + 0.2 - self.frame_period)
 
     def sched_record_trial_start(self):
         self.win.callOnFlip(self._get_trial_start)
@@ -240,12 +177,13 @@ class StateMachine(Machine):
     # first_target functions
     def trial_timer_passed_second(self):
         # this timer is the other way around
-        return (self.trial_timer.getTime() - 0.2 - self.frame_period) <= self.trial_table['switch_time'][
-            self.trial_counter]
+        return ((self.trial_timer.getTime() - 0.2 - self.frame_period) <= self.trial_table['switch_time'][self.trial_counter])
 
     def show_second_target(self):
-        self.targets[int(self.trial_table['first'][self.trial_counter] == self.right_val)].setAutoDraw(False)
-        self.targets[int(self.trial_table['second'][self.trial_counter] == self.right_val)].setAutoDraw(True)
+        self.targets[int(self.trial_table['first'][self.trial_counter]
+                         == self.right_val)].setAutoDraw(False)
+        self.targets[int(self.trial_table['second'][self.trial_counter]
+                         == self.right_val)].setAutoDraw(True)
         self.win.callOnFlip(self.log_switch_time)
 
     def log_switch_time(self):
@@ -259,16 +197,20 @@ class StateMachine(Machine):
 
     def record_data(self):
         self.trial_data['index'] = self.trial_counter
-        self.trial_data['first_target'] = int(self.trial_table['first'][self.trial_counter])
-        self.trial_data['second_target'] = int(self.trial_table['second'][self.trial_counter])
+        self.trial_data['first_target'] = int(
+            self.trial_table['first'][self.trial_counter])
+        self.trial_data['second_target'] = int(
+            self.trial_table['second'][self.trial_counter])
         # real_switch_time logged in log_switch_time
         self.trial_data['first_press'] = self.first_press
         self.trial_data['first_press_time'] = self.first_press_time
         self.trial_data['correct'] = int(self.correct_answer)
-        self.trial_data['prep_time'] = self.first_press_time - self.trial_data['real_switch_time']
+        self.trial_data['prep_time'] = self.first_press_time - \
+            self.trial_data['real_switch_time']
         # now write data
         with open(self.summary_file_name, 'a') as f:
-            writer = csv.DictWriter(f, fieldnames=self.csv_header, lineterminator='\n')
+            writer = csv.DictWriter(
+                f, fieldnames=self.csv_header, lineterminator='\n')
             writer.writerow(self.trial_data)
 
         self.trial_data.update({'index': np.nan, 'first_target': np.nan, 'second_target': np.nan,
@@ -295,10 +237,12 @@ class StateMachine(Machine):
 
     def draw_feedback(self):
         # text for timing, correctness
-        [t.setFillColor((-0.3, 0.7, -0.3) if self.correct_answer else (0.7, -0.3, -0.3)) for t in self.targets]
+        [t.setFillColor((-0.3, 0.7, -0.3) if self.correct_answer else (0.7, -0.3, -0.3))
+         for t in self.targets]
 
     def sched_feedback_timer_reset(self):
-        self.win.callOnFlip(self.feedback_timer.reset, 0.3 - self.frame_period)  # 300 ms feedback?
+        self.win.callOnFlip(self.feedback_timer.reset, 0.3 -
+                            self.frame_period)  # 300 ms feedback?
 
     # feedback functions
     def feedback_timer_elapsed(self):
@@ -340,12 +284,11 @@ class StateMachine(Machine):
             if self.device.device.__name__ is 'Keyboard':
                 for i, j in zip(data[0], data[1]):
                     self.keyboard_state[j[0]] = i[0]
-                self.device_on = any(self.keyboard_state)  # colour in if any buttons pressed
+                # colour in if any buttons pressed
+                self.device_on = any(self.keyboard_state)
                 if np.isnan(self.first_press) and self.device_on:
                     self.first_press = data[1][0][0]
                     self.first_press_time = (timestamp - self.trial_start)[0]
-                    print((self.first_press, self.first_press_time))
-
 
             elif self.device.device.__name__ is 'ForceTransducers':
                 # see sg.medfilt(trial_input_buffer, kernel_size=(odd, 1))
