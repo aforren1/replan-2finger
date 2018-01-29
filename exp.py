@@ -28,4 +28,5 @@ if __name__ == '__main__':
                 state_machine.to_cleanup()
             state_machine.win.flip()  # flip frame buffer
     state_machine.win.close()
+    state_machine.win.saveFrameIntervals()
     core.quit()
