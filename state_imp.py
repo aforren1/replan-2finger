@@ -14,7 +14,7 @@ from toon.audio import beep_sequence
 from toon.input import Keyboard, ForceTransducers, MultiprocessInput
 
 
-class StateMachine(StateMachine):
+class TwoChoice(StateMachine):
     """
     `sched_` denotes things that are scheduled to coincide w/ the frame buffer flip
     Remember to account for lag in drawing (plan on drawing ~ 1 frame (e.g. 15ms) before onset)
@@ -23,7 +23,7 @@ class StateMachine(StateMachine):
 
     def __init__(self, settings=None):
 
-        super(StateMachine, self).__init__()
+        super(TwoChoice, self).__init__()
         # clocks and timers
         self.global_clock = clock.monotonicClock
         # gives us the time until the end of the trial (counts down)
@@ -39,9 +39,7 @@ class StateMachine(StateMachine):
             self.trial_table = pd.read_csv(settings['trial_table'])
         except FileNotFoundError:
             core.quit()
-
-        # visually-related things
-        # window
+        
         self.win = visual.Window(size=(800, 800),
                                  pos=(0, 0),
                                  fullscr=settings['fullscreen'],
@@ -53,35 +51,7 @@ class StateMachine(StateMachine):
                                  useFBO=False)
         self.win.recordFrameIntervals = True
 
-        # targets
-        poses = [(-0.6, 0), (0.6, 0)]  # vary just on x-axis
-        names = ['left_target', 'right_target']
-        self.targets = [visual.Rect(self.win, width=0.5, height=0.5, fillColor=[0, 0, 0], pos=p, lineWidth=0, name=n)
-                        for p, n in zip(poses, names)]
-
-        # push feedback
-        self.push_feedback = visual.Circle(self.win, size=0.1, fillColor=[-1, -1, -1], pos=(0, 0),
-                                           autoDraw=False, autoLog=False, name='push_feedback')
-        # fixation
-        self.fixation = visual.Circle(self.win, size=0.05, fillColor=[1, 1, 1], pos=(0, 0),
-                                      autoDraw=False, name='fixation')
-
-        # text
-        self.wait_text = visual.TextStim(self.win, text='Press a key to start.', pos=(0, 0),
-                                         units='norm', color=(1, 1, 1), height=0.2,
-                                         alignHoriz='center', alignVert='center', name='wait_text',
-                                         autoLog=False, wrapWidth=2)
-        self.wait_text.autoDraw = True
-        self.good = visual.TextStim(self.win, text=u'Good timing!', pos=(0, 0.4),
-                                    units='norm', color=(-1, 1, 0.2), height=0.1,
-                                    alignHoriz='center', alignVert='center', autoLog=True, name='good_text')
-        self.too_slow = visual.TextStim(self.win, text=u'Too slow.', pos=(0, 0.4),
-                                        units='norm', color=(1, -1, -1), height=0.1,
-                                        alignHoriz='center', alignVert='center', autoLog=True, name='slow_text')
-        self.too_fast = visual.TextStim(self.win, text=u'Too fast.', pos=(0, 0.4),
-                                        units='norm', color=(1, -1, -1), height=0.1,
-                                        alignHoriz='center', alignVert='center', autoLog=True, name='fast_text')
-
+        self.setup_visuals() # decouple for the sake of the other exp
         # audio
         tmp = beep_sequence(click_freq=(523.251, 659.255, 783.991, 1046.5),
                             inter_click_interval=0.4,
@@ -130,6 +100,38 @@ class StateMachine(StateMachine):
         self.device_on = False
         self.correct_answer = False
         self.countdown_timer.reset(6)
+
+    def setup_visuals(self):
+        # visually-related things
+        # targets
+        poses = [(-0.6, 0), (0.6, 0)]  # vary just on x-axis
+        names = ['left_target', 'right_target']
+        self.targets = [visual.Rect(self.win, width=0.5, height=0.5, fillColor=[0, 0, 0], pos=p, lineWidth=0, name=n)
+                        for p, n in zip(poses, names)]
+
+        # push feedback
+        self.push_feedback = visual.Circle(self.win, size=0.1, fillColor=[-1, -1, -1], pos=(0, 0),
+                                           autoDraw=False, autoLog=False, name='push_feedback')
+        # fixation
+        self.fixation = visual.Circle(self.win, size=0.05, fillColor=[1, 1, 1], pos=(0, 0),
+                                      autoDraw=False, name='fixation')
+
+        # text
+        self.wait_text = visual.TextStim(self.win, text='Press a key to start.', pos=(0, 0),
+                                         units='norm', color=(1, 1, 1), height=0.2,
+                                         alignHoriz='center', alignVert='center', name='wait_text',
+                                         autoLog=False, wrapWidth=2)
+        self.wait_text.autoDraw = True
+        self.good = visual.TextStim(self.win, text=u'Good timing!', pos=(0, 0.4),
+                                    units='norm', color=(-1, 1, 0.2), height=0.1,
+                                    alignHoriz='center', alignVert='center', autoLog=True, name='good_text')
+        self.too_slow = visual.TextStim(self.win, text=u'Too slow.', pos=(0, 0.4),
+                                        units='norm', color=(1, -1, -1), height=0.1,
+                                        alignHoriz='center', alignVert='center', autoLog=True, name='slow_text')
+        self.too_fast = visual.TextStim(self.win, text=u'Too fast.', pos=(0, 0.4),
+                                        units='norm', color=(1, -1, -1), height=0.1,
+                                        alignHoriz='center', alignVert='center', autoLog=True, name='fast_text')
+
 
     # wait functions
     def remove_text(self):
@@ -239,8 +241,7 @@ class StateMachine(StateMachine):
          for t in self.targets]
 
     def sched_feedback_timer_reset(self):
-        self.win.callOnFlip(self.feedback_timer.reset, 0.3 -
-                            self.frame_period)  # 300 ms feedback?
+        self.win.callOnFlip(self.feedback_timer.reset, 0.3 - self.frame_period)  # 300 ms feedback?
 
     # feedback functions
     def feedback_timer_elapsed(self):
@@ -258,8 +259,7 @@ class StateMachine(StateMachine):
         self.trial_counter += 1
 
     def sched_post_timer_reset(self):
-        self.win.callOnFlip(self.post_timer.reset,
-                            0.1 - self.frame_period)  # can be short (100 ms already built in via audio delay)
+        self.win.callOnFlip(self.post_timer.reset, 0.1 - self.frame_period)
 
     # post_trial functions
     def post_timer_elapsed(self):

@@ -1,4 +1,5 @@
-from state_imp import StateMachine
+from state_imp import TwoChoice
+from state_imp_pic import MultiChoice
 from psychopy import core, gui
 from psychopy.event import Mouse
 
@@ -6,6 +7,7 @@ if __name__ == '__main__':
     settings = {'subject': '001',
                 'fullscreen': False,
                 'forceboard': False,
+                'twochoice': True,
                 'trial_table': 'test.csv'}
 
     dialog = gui.DlgFromDict(dictionary=settings, title='Two-finger Replan')
@@ -14,19 +16,22 @@ if __name__ == '__main__':
         core.quit()
 
     # could have a second menu, depending on the experiment
-    state_machine = StateMachine(settings=settings)
+    if settings['twochoice']:
+        experiment = TwoChoice(settings=settings)
+    else:
+        experiment = MultiChoice(settings=settings)
 
-    mouse = Mouse(visible=False, win=state_machine.win)
-    state_machine.coin.play()
-    with state_machine.device:
-        state_machine.win.flip()
-        while state_machine.state is not 'cleanup':
-            state_machine.input()  # collect input
-            state_machine.draw_input()  # draw the input
-            state_machine.step()  # evaluate any transitions
+    mouse = Mouse(visible=False, win=experiment.win)
+    experiment.coin.play()
+    with experiment.device:
+        experiment.win.flip()
+        while experiment.state is not 'cleanup':
+            experiment.input()  # collect input
+            experiment.draw_input()  # draw the input
+            experiment.step()  # evaluate any transitions
             if any(mouse.getPressed()):
-                state_machine.to_cleanup()
-            state_machine.win.flip()  # flip frame buffer
-    state_machine.win.close()
-    # state_machine.win.saveFrameIntervals() # for debugging
+                experiment.to_cleanup()
+            experiment.win.flip()  # flip frame buffer
+    experiment.win.close()
+    # experiment.win.saveFrameIntervals() # for debugging
     core.quit()
