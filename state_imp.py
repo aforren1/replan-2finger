@@ -61,7 +61,7 @@ class TwoChoice(StateMachine):
 
         self.beep = sound.Sound(tmp, blockSize=16, hamming=False)
         # TODO: check bug in auto-config of sounddevice (stereo = -1)
-        self.coin = sound.Sound('coin.wav', stereo=True)
+        self.coin = sound.Sound('media/coin.wav', stereo=True)
         # Input device
         if settings['forceboard']:
             self.device = MultiprocessInput(ForceTransducers, clock=self.global_clock.getTime)
@@ -71,7 +71,7 @@ class TwoChoice(StateMachine):
             self.keyboard_state = [False] * 10
 
         # by-trial data
-        self.summary_file_name = 'id_' + settings['subject'] + '_' + \
+        self.summary_file_name = 'data/id_' + settings['subject'] + '_' + \
                                  op.splitext(op.basename(settings['trial_table']))[0] + \
                                  dt.now().strftime('_%H%M%S') + '.csv'
         self.csv_header = ['index', 'subject', 'first_target', 'second_target',

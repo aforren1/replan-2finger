@@ -8,7 +8,7 @@ if __name__ == '__main__':
                 'fullscreen': False,
                 'forceboard': False,
                 'twochoice': True,
-                'trial_table': 'test.csv'}
+                'trial_table': 'tables/test.csv'}
 
     dialog = gui.DlgFromDict(dictionary=settings, title='Replanning')
 

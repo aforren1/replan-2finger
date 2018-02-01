@@ -1,26 +1,18 @@
-from datetime import datetime as dt
-import csv
-import os.path as op
-import numpy as np
-from scipy import signal as sg
-import pandas as pd
 from psychopy import prefs
 from state_imp import TwoChoice
 
 # we need to set prefs *before* setting the other stuff
 prefs.general['audioLib'] = ['sounddevice']
-from psychopy import clock, core, visual, sound
-from toon.audio import beep_sequence
-from toon.input import Keyboard, ForceTransducers, MultiprocessInput
+from psychopy import visual
 
 class MultiChoice(TwoChoice):
     def __init__(self, settings=None):
         super(MultiChoice, self).__init__(settings=settings)
 
     def setup_visuals(self):
-        right_hand = visual.ImageStim(self.win, image='hand.png', size=(0.4, 0.4), 
+        right_hand = visual.ImageStim(self.win, image='media/hand.png', size=(0.4, 0.4), 
                                       pos=(0.3, 0), ori=-90)
-        left_hand = visual.ImageStim(self.win, image='hand.png', size=(0.4, 0.4), 
+        left_hand = visual.ImageStim(self.win, image='media/hand.png', size=(0.4, 0.4), 
                                      pos=(-0.3, 0), ori=90, flipHoriz=True)
         self.background = visual.BufferImageStim(self.win, stim=[left_hand, right_hand])
         # self.background.autoDraw = True
