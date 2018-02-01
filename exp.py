@@ -10,7 +10,7 @@ if __name__ == '__main__':
                 'twochoice': True,
                 'trial_table': 'test.csv'}
 
-    dialog = gui.DlgFromDict(dictionary=settings, title='Two-finger Replan')
+    dialog = gui.DlgFromDict(dictionary=settings, title='Replanning')
 
     if not dialog.OK:
         core.quit()
