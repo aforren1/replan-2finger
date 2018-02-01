@@ -15,7 +15,7 @@ from toon.input import Keyboard, ForceTransducers, MultiprocessInput
 
 class MultiChoice(TwoChoice):
     def __init__(self, settings=None):
-        super(FingerExp, self).__init__(settings=settings)
+        super(MultiChoice, self).__init__(settings=settings)
 
     def setup_visuals(self):
         right_hand = visual.ImageStim(self.win, image='hand.png', size=(0.4, 0.4), 
