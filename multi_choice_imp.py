@@ -1,5 +1,5 @@
 from psychopy import prefs
-from state_imp import TwoChoice
+from two_choice_imp import TwoChoice
 
 # we need to set prefs *before* setting the other stuff
 prefs.general['audioLib'] = ['sounddevice']

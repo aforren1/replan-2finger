@@ -1,5 +1,5 @@
-from state_imp import TwoChoice
-from state_imp_pic import MultiChoice
+from two_choice_imp import TwoChoice
+from multi_choice_imp import MultiChoice
 from psychopy import core, gui
 from psychopy.event import Mouse
 
