@@ -1,9 +1,11 @@
-import numpy as np
-import pandas as pd
 import itertools
 
-def mk_multi_block(name='testy.csv', combo=[0, 4, 5, 9], num_trials=120, prop_switch=0.35,
-                   min_max_time=(0.1, 0.45), frame_rate=60):
+import numpy as np
+import pandas as pd
+
+
+def mk_multi_block(name='testy.csv', combo=[0, 4, 5, 9], num_trials=120, 
+                   prop_switch=0.35, min_max_time=(0.1, 0.45), frame_rate=60):
     num_switch_trials = int(num_trials * prop_switch)
     num_other_trials = int(num_trials - num_switch_trials)
     if num_switch_trials % len(combo) != 0:
@@ -29,7 +31,7 @@ def mk_multi_block(name='testy.csv', combo=[0, 4, 5, 9], num_trials=120, prop_sw
         tmp.append(rr)
     all_pairs = np.vstack(tmp)
     np.random.shuffle(all_pairs)
-    practice = [[x,y] for x, y in zip(combo, combo)]
+    practice = [[x, y] for x, y in zip(combo, combo)]
     for i in practice:
         i.append(0)
     all_pairs = np.vstack((practice, all_pairs))
