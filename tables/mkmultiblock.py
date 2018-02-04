@@ -5,19 +5,20 @@ import pandas as pd
 
 
 def mk_multi_block(name='testy.csv', combo=[0, 4, 5, 9], num_trials=120, 
-                   prop_switch=0.35, min_max_time=(0.1, 0.45), frame_rate=60):
+                   prop_switch=0.3, min_max_time=(0.1, 0.45), frame_rate=60):
     num_switch_trials = int(num_trials * prop_switch)
     num_other_trials = int(num_trials - num_switch_trials)
-    if num_switch_trials % len(combo) != 0:
+    pairs = list(itertools.product(combo, combo))
+    pairs = [list(x) for x in pairs]
+    matching = sum([x[0] == x[1] for x in pairs])
+    not_matching = sum([x[0] != x[1] for x in pairs])
+
+    if num_switch_trials % not_matching != 0:
         raise ValueError('Make sure all selections are sampled evenly.')
     min_frames = int(min_max_time[0] * frame_rate)
     max_frames = int(min_max_time[1] * frame_rate)
     switch_times = np.random.randint(min_frames, max_frames + 1, num_switch_trials).astype('d')
     switch_times /= frame_rate
-    pairs = list(itertools.product(combo, combo))
-    pairs = [list(x) for x in pairs]
-    matching = sum([x[0] == x[1] for x in pairs])
-    not_matching = sum([x[0] != x[1] for x in pairs])
     tmp = list()
     count = 0
     for x in pairs:
