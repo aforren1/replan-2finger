@@ -1,17 +1,20 @@
-from datetime import datetime as dt
 import csv
+import os
 import os.path as op
+import shutil
+from datetime import datetime as dt
+
 import numpy as np
-from scipy import signal as sg
 import pandas as pd
-from psychopy import prefs
+from psychopy import clock, core, prefs, sound, visual
+from scipy import signal as sg
+
 from state_dec import StateMachine
+from toon.audio import beep_sequence
+from toon.input import ForceTransducers, Keyboard, MultiprocessInput
 
 # we need to set prefs *before* setting the other stuff
 prefs.general['audioLib'] = ['sounddevice']
-from psychopy import clock, core, visual, sound
-from toon.audio import beep_sequence
-from toon.input import Keyboard, ForceTransducers, MultiprocessInput
 
 
 class TwoChoice(StateMachine):
@@ -69,9 +72,13 @@ class TwoChoice(StateMachine):
             keys = 'awefvbhuil'
             self.device = MultiprocessInput(Keyboard, keys=list(keys), clock=self.global_clock.getTime)
             self.keyboard_state = [False] * 10
-
         # by-trial data
-        self.summary_file_name = 'data/id_' + settings['subject'] + '_' + \
+        data_path = 'data/' + settings['subject'] + '/'
+        if not op.exists(data_path):
+            os.makedirs(data_path)
+        # copy the trial table to the data folder
+        shutil.copyfile(settings['trial_table'], data_path + op.basename(settings['trial_table']))
+        self.summary_file_name = data_path + 'id_' + settings['subject'] + '_' + \
                                  op.splitext(op.basename(settings['trial_table']))[0] + \
                                  dt.now().strftime('_%H%M%S') + '.csv'
         self.csv_header = ['index', 'subject', 'first_target', 'second_target',

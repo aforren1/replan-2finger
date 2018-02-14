@@ -38,3 +38,9 @@ def mk_multi_block(name='testy.csv', combo=[0, 4, 5, 9], num_trials=120,
     all_pairs = np.vstack((practice, all_pairs))
     pair_frame = pd.DataFrame(all_pairs, columns=['first', 'second', 'switch_time'])
     pair_frame.to_csv(name, index=False, float_format='%.4f')
+
+def mk_multi_blocks(fingers=[0, 4, 5, 9], blocks=8):
+    for i in range(blocks):
+        mk_multi_block('multiblock' + str(i) + '.csv', combo=fingers)
+
+mk_multi_blocks()
