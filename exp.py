@@ -24,7 +24,6 @@ if __name__ == '__main__':
     mouse = Mouse(visible=False, win=experiment.win)
     experiment.coin.play()
     with experiment.device:
-        experiment.win.flip()
         while experiment.state is not 'cleanup':
             experiment.input()  # collect input
             experiment.draw_input()  # draw the input
