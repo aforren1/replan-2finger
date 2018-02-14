@@ -6,15 +6,20 @@ from datetime import datetime as dt
 
 import numpy as np
 import pandas as pd
-from psychopy import clock, core, prefs, sound, visual
+from psychopy import prefs
+# we need to set prefs *before* setting the other stuff
+prefs.general['audioLib'] = ['sounddevice']
+from psychopy import clock, core, sound, visual, logging
 from scipy import signal as sg
 
 from state_dec import StateMachine
 from toon.audio import beep_sequence
-from toon.input import ForceTransducers, Keyboard, MultiprocessInput
+from toon.input import MultiprocessInput
+from toon.input.force_transducers import ForceTransducers
+from toon.input.keyboard import Keyboard
+from toon.input.clock import mono_clock
 
-# we need to set prefs *before* setting the other stuff
-prefs.general['audioLib'] = ['sounddevice']
+logging.setDefaultClock(mono_clock)
 
 
 class TwoChoice(StateMachine):
@@ -28,7 +33,7 @@ class TwoChoice(StateMachine):
 
         super(TwoChoice, self).__init__()
         # clocks and timers
-        self.global_clock = clock.monotonicClock
+        self.global_clock = mono_clock
         # gives us the time until the end of the trial (counts down)
         self.trial_timer = core.CountdownTimer()
         # gives time that feedback shows (counts down)
@@ -42,7 +47,7 @@ class TwoChoice(StateMachine):
             self.trial_table = pd.read_csv(settings['trial_table'])
         except FileNotFoundError:
             core.quit()
-        
+
         self.win = visual.Window(size=(800, 800),
                                  pos=(0, 0),
                                  fullscr=settings['fullscreen'],
@@ -50,11 +55,10 @@ class TwoChoice(StateMachine):
                                  units='height',
                                  allowGUI=False,
                                  colorSpace='rgb',
-                                 color=(-1, -1, -1),
-                                 useFBO=False)
+                                 color=(-1, -1, -1))
         self.win.recordFrameIntervals = True
 
-        self.setup_visuals() # decouple for the sake of the other exp
+        self.setup_visuals()  # decouple for the sake of the other exp
         # audio
         tmp = beep_sequence(click_freq=(523.251, 659.255, 783.991, 1046.5),
                             inter_click_interval=0.4,
@@ -67,20 +71,23 @@ class TwoChoice(StateMachine):
         self.coin = sound.Sound('media/coin.wav', stereo=True)
         # Input device
         if settings['forceboard']:
-            self.device = MultiprocessInput(ForceTransducers, clock=self.global_clock.getTime)
+            self.device = MultiprocessInput(
+                ForceTransducers, clock=self.global_clock.getTime)
         else:
             keys = 'awefvbhuil'
-            self.device = MultiprocessInput(Keyboard, keys=list(keys), clock=self.global_clock.getTime)
+            self.device = MultiprocessInput(Keyboard, keys=list(
+                keys), clock=self.global_clock.getTime)
             self.keyboard_state = [False] * 10
         # by-trial data
         data_path = 'data/' + settings['subject'] + '/'
         if not op.exists(data_path):
             os.makedirs(data_path)
         # copy the trial table to the data folder
-        shutil.copyfile(settings['trial_table'], data_path + op.basename(settings['trial_table']))
+        shutil.copyfile(settings['trial_table'], data_path +
+                        op.basename(settings['trial_table']))
         self.summary_file_name = data_path + 'id_' + settings['subject'] + '_' + \
-                                 op.splitext(op.basename(settings['trial_table']))[0] + \
-                                 dt.now().strftime('_%H%M%S') + '.csv'
+            op.splitext(op.basename(settings['trial_table']))[0] + \
+            dt.now().strftime('_%H%M%S') + '.csv'
         self.csv_header = ['index', 'subject', 'first_target', 'second_target',
                            'real_switch_time', 'first_press', 'first_press_time', 'correct', 'prep_time']
         with open(self.summary_file_name, 'w') as f:
@@ -139,7 +146,6 @@ class TwoChoice(StateMachine):
                                         units='norm', color=(1, -1, -1), height=0.1,
                                         alignHoriz='center', alignVert='center', autoLog=True, name='fast_text')
 
-
     # wait functions
     def remove_text(self):
         self.wait_text.autoDraw = False
@@ -179,7 +185,8 @@ class TwoChoice(StateMachine):
 
     def show_first_target(self):
         # This is tricky -- if the condition evaluates to false, draw the left target
-        self.targets[int(self.trial_table['first'][self.trial_counter] == self.right_val)].setAutoDraw(True)
+        self.targets[int(self.trial_table['first'][self.trial_counter]
+                         == self.right_val)].setAutoDraw(True)
 
     # first_target functions
     def trial_timer_passed_second(self):
@@ -194,7 +201,8 @@ class TwoChoice(StateMachine):
         self.win.callOnFlip(self.log_switch_time)
 
     def log_switch_time(self):
-        self.trial_data['real_switch_time'] = self.win.lastFrameT - self.trial_start
+        self.trial_data['real_switch_time'] = self.win.lastFrameT - \
+            self.trial_start
         # print(self.trial_table['switch_time'][self.trial_counter])
         # print(self.last_beep_time - self.trial_data['real_switch_time'])
 
@@ -248,7 +256,8 @@ class TwoChoice(StateMachine):
          for t in self.targets]
 
     def sched_feedback_timer_reset(self):
-        self.win.callOnFlip(self.feedback_timer.reset, 0.3 - self.frame_period)  # 300 ms feedback?
+        self.win.callOnFlip(self.feedback_timer.reset, 0.3 -
+                            self.frame_period)  # 300 ms feedback?
 
     # feedback functions
     def feedback_timer_elapsed(self):
@@ -305,4 +314,5 @@ class TwoChoice(StateMachine):
                     self.trial_input_time_buffer[next_index, :] = timestamp
 
     def draw_input(self):
-        self.push_feedback.setFillColor([0, 0, 0] if self.device_on else [-1, -1, -1])
+        self.push_feedback.setFillColor(
+            [0, 0, 0] if self.device_on else [-1, -1, -1])
