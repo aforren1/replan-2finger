@@ -5,8 +5,8 @@ import pandas as pd
 # switch_time is the time before the last beep that the switch occurs
 
 
-def mk_block(name='testx.csv', pair=[0, 4], num_trials=70,
-             prop_switch=0.35, min_max_time=(0.1, 0.45), frame_rate=60):
+def mk_block(name='testx.csv', pair=[0, 4], num_trials=80,
+             prop_switch=0.3, min_max_time=(0.1, 0.45), frame_rate=60):
     num_switch_trials = int(num_trials * prop_switch)
     num_other_trials = int(num_trials - num_switch_trials)
     if num_switch_trials % 2 != 0:
