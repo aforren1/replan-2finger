@@ -123,6 +123,16 @@ class TwoChoice(StateMachine):
         self.targets = [visual.Rect(self.win, width=0.5, height=0.5, fillColor=[0, 0, 0], pos=p, lineWidth=0, name=n)
                         for p, n in zip(poses, names)]
 
+        fingers = ['pinky', 'ring', 'middle', 'index', 'thumb']
+        left_hand = ['left ' + f for f in fingers]
+        fingers.reverse()
+        right_hand = ['right ' + f for f in fingers]
+        both_hands = left_hand + right_hand
+        uniques = pd.unique(self.trial_table['first']).astype(int)
+        unique_finger_names = [both_hands[i] for i in uniques]
+        unique_str = ", ".join(unique_finger_names)  # gives something like "left pinky, left thumb"
+
+
         # push feedback
         self.push_feedback = visual.Circle(self.win, size=0.1, fillColor=[-1, -1, -1], pos=(0, 0),
                                            autoDraw=False, autoLog=False, name='push_feedback')
@@ -131,8 +141,8 @@ class TwoChoice(StateMachine):
                                       autoDraw=False, name='fixation')
 
         # text
-        self.wait_text = visual.TextStim(self.win, text='Press a key to start.', pos=(0, 0),
-                                         units='norm', color=(1, 1, 1), height=0.2,
+        self.wait_text = visual.TextStim(self.win, text='Press a key to start.\nKeys are:\n' + unique_str, pos=(0, 0),
+                                         units='norm', color=(1, 1, 1), height=0.1,
                                          alignHoriz='center', alignVert='center', name='wait_text',
                                          autoLog=False, wrapWidth=2)
         self.wait_text.autoDraw = True
