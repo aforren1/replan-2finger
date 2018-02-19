@@ -8,7 +8,8 @@ if __name__ == '__main__':
                 'fullscreen': False,
                 'forceboard': False,
                 'twochoice': True,
-                'trial_table': 'tables/test.csv'}
+                'trial_table': 'tables/test.csv',
+                'adaptive': False}  # NB: ignored in the MultiChoice example
 
     dialog = gui.DlgFromDict(dictionary=settings, title='Replanning')
 

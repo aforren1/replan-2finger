@@ -40,7 +40,6 @@ class TwoChoice(StateMachine):
         self.feedback_timer = core.CountdownTimer()
         # gives time between trials (counts down)
         self.post_timer = core.CountdownTimer()
-        self.countdown_timer = core.CountdownTimer()  # time until block starts
 
         # trial table
         try:
@@ -113,7 +112,15 @@ class TwoChoice(StateMachine):
             'first', 'second']].max(axis=0).max()
         self.device_on = False
         self.correct_answer = False
-        self.countdown_timer.reset(6)
+        
+        # things related to the adaptive version
+        self.adaptive = settings['adaptive']
+        self.adaptive_count = 0 # number of adaptive trials
+        self.sign_switch_count = 0 # number of times the correctness switched
+        self.curr_sign = False
+        self.prev_sign = False
+        self.curr_prep_time = 0.5 # start at 500ms
+
 
     def setup_visuals(self):
         # visually-related things
@@ -168,7 +175,7 @@ class TwoChoice(StateMachine):
         return not self.device_on
 
     def sched_beep(self):
-        self.beep.seek(self.beep.stream.latency)
+        self.beep.seek(self.beep.stream.latency)  # 100ms of silence is built into the click train, so we can seek in without affecting the actual stimulus
         self.win.callOnFlip(self.beep.play)
 
     def sched_trial_timer_reset(self):
@@ -195,8 +202,7 @@ class TwoChoice(StateMachine):
 
     def show_first_target(self):
         # This is tricky -- if the condition evaluates to false, draw the left target
-        self.targets[int(self.trial_table['first'][self.trial_counter]
-                         == self.right_val)].setAutoDraw(True)
+        self.targets[int(self.trial_table['first'][self.trial_counter] == self.right_val)].setAutoDraw(True)
 
     # first_target functions
     def trial_timer_passed_second(self):
@@ -204,15 +210,12 @@ class TwoChoice(StateMachine):
         return ((self.trial_timer.getTime() - 0.2 - self.frame_period) <= self.trial_table['switch_time'][self.trial_counter])
 
     def show_second_target(self):
-        self.targets[int(self.trial_table['first'][self.trial_counter]
-                         == self.right_val)].setAutoDraw(False)
-        self.targets[int(self.trial_table['second'][self.trial_counter]
-                         == self.right_val)].setAutoDraw(True)
+        self.targets[int(self.trial_table['first'][self.trial_counter] == self.right_val)].setAutoDraw(False)
+        self.targets[int(self.trial_table['second'][self.trial_counter] == self.right_val)].setAutoDraw(True)
         self.win.callOnFlip(self.log_switch_time)
 
     def log_switch_time(self):
-        self.trial_data['real_switch_time'] = self.win.lastFrameT - \
-            self.trial_start
+        self.trial_data['real_switch_time'] = self.win.lastFrameT - self.trial_start
         # print(self.trial_table['switch_time'][self.trial_counter])
         # print(self.last_beep_time - self.trial_data['real_switch_time'])
 
@@ -222,20 +225,16 @@ class TwoChoice(StateMachine):
 
     def record_data(self):
         self.trial_data['index'] = self.trial_counter
-        self.trial_data['first_target'] = int(
-            self.trial_table['first'][self.trial_counter])
-        self.trial_data['second_target'] = int(
-            self.trial_table['second'][self.trial_counter])
+        self.trial_data['first_target'] = int(self.trial_table['first'][self.trial_counter])
+        self.trial_data['second_target'] = int(self.trial_table['second'][self.trial_counter])
         # real_switch_time logged in log_switch_time
         self.trial_data['first_press'] = self.first_press
         self.trial_data['first_press_time'] = self.first_press_time
         self.trial_data['correct'] = int(self.correct_answer)
-        self.trial_data['prep_time'] = self.first_press_time - \
-            self.trial_data['real_switch_time']
+        self.trial_data['prep_time'] = self.first_press_time - self.trial_data['real_switch_time']
         # now write data
         with open(self.summary_file_name, 'a') as f:
-            writer = csv.DictWriter(
-                f, fieldnames=self.csv_header, lineterminator='\n')
+            writer = csv.DictWriter(f, fieldnames=self.csv_header, lineterminator='\n')
             writer.writerow(self.trial_data)
 
         self.trial_data.update({'index': np.nan, 'first_target': np.nan, 'second_target': np.nan,
@@ -324,5 +323,4 @@ class TwoChoice(StateMachine):
                     self.trial_input_time_buffer[next_index, :] = timestamp
 
     def draw_input(self):
-        self.push_feedback.setFillColor(
-            [0, 0, 0] if self.device_on else [-1, -1, -1])
+        self.push_feedback.setFillColor([0, 0, 0] if self.device_on else [-1, -1, -1])
