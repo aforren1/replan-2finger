@@ -82,11 +82,12 @@ class TwoChoice(StateMachine):
         if not op.exists(data_path):
             os.makedirs(data_path)
         # copy the trial table to the data folder
+        adaptstring = '_adapt' if settings['adaptive'] else ''
         shutil.copyfile(settings['trial_table'], data_path +
                         op.basename(settings['trial_table']))
         self.summary_file_name = data_path + 'id_' + settings['subject'] + '_' + \
             op.splitext(op.basename(settings['trial_table']))[0] + \
-            dt.now().strftime('_%H%M%S') + '.csv'
+            adaptstring + dt.now().strftime('_%H%M%S') + '.csv'
         self.csv_header = ['index', 'subject', 'first_target', 'second_target',
                            'real_switch_time', 'first_press', 'first_press_time', 'correct', 'prep_time']
         with open(self.summary_file_name, 'w') as f:
@@ -108,14 +109,12 @@ class TwoChoice(StateMachine):
         self.first_press = np.nan
         self.first_press_time = np.nan
         self.left_val = self.trial_table[['first', 'second']].min(axis=0).min()
-        self.right_val = self.trial_table[[
-            'first', 'second']].max(axis=0).max()
+        self.right_val = self.trial_table[['first', 'second']].max(axis=0).max()
         self.device_on = False
         self.correct_answer = False
         
         # things related to the adaptive version
         self.adaptive = settings['adaptive']
-        self.adaptive_count = 0 # number of adaptive trials
         self.sign_switch_count = 0 # number of times the correctness switched
         self.curr_sign = False
         self.prev_sign = False
@@ -180,8 +179,7 @@ class TwoChoice(StateMachine):
 
     def sched_trial_timer_reset(self):
         # trial ends 200 ms after last beep
-        self.win.callOnFlip(self.trial_timer.reset,
-                            self.last_beep_time + 0.2 - self.frame_period)
+        self.win.callOnFlip(self.trial_timer.reset, self.last_beep_time + 0.2 - self.frame_period)
 
     def sched_record_trial_start(self):
         self.win.callOnFlip(self._get_trial_start)
@@ -295,6 +293,30 @@ class TwoChoice(StateMachine):
 
     def wait_for_press(self):
         return not np.isnan(self.first_press)
+
+    def calc_adapt(self):
+        if self.adaptive and self.trial_table['first'][self.trial_counter] != self.trial_table['second'][self.trial_counter]:
+            #self.prev_sign = self.correct_answer
+            if self.trial_counter == 0:
+                pass # initial point, 500 ms
+            elif self.trial_counter == 1:
+                self.curr_sign = -1.0 if self.correct_answer else 1.0  # shrink if right, grow if wrong
+                self.curr_prep_time += (16/60) * self.curr_sign
+                self.prev_sign = self.curr_sign
+            elif self.trial_counter == 2:
+                self.curr_sign = -1.0 if self.correct_answer else 1.0  # shrink if right, grow if wrong
+                self.sign_switch_count += 1 if self.curr_sign != self.prev_sign else 0
+                self.curr_prep_time += (8/60) * self.curr_sign
+                self.prev_sign = self.curr_sign
+            else:
+                self.curr_sign = -1.0 if self.correct_answer else 1.0
+                self.sign_switch_count += 1 if self.curr_sign != self.prev_sign else 0
+                self.curr_prep_time += max(1/60, (2 ** (3 - self.sign_switch_count)/60)) * self.curr_sign
+            # apply bounds
+            self.curr_prep_time = min(0.8, self.curr_prep_time)
+            self.curr_prep_time = max(0.05, self.curr_prep_time)
+            self.trial_table.loc[self.trial_counter, 'switch_time'] = self.curr_prep_time
+            print('Trial: ' + str(self.trial_counter) + ', prep: ' + str(self.curr_prep_time))
 
     # cleanup functions
     def close_n_such(self):
