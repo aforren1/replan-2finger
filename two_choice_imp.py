@@ -313,7 +313,7 @@ class TwoChoice(StateMachine):
                 self.sign_switch_count += 1 if self.curr_sign != self.prev_sign else 0
                 self.curr_prep_time += max(1/60, (2 ** (3 - self.sign_switch_count)/60)) * self.curr_sign
             # apply bounds
-            self.curr_prep_time = min(0.8, self.curr_prep_time)
+            self.curr_prep_time = min(0.6, self.curr_prep_time)
             self.curr_prep_time = max(0.05, self.curr_prep_time)
             self.trial_table.loc[self.trial_counter, 'switch_time'] = self.curr_prep_time
             print('Trial: ' + str(self.trial_counter) + ', prep: ' + str(self.curr_prep_time))
