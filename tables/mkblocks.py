@@ -55,7 +55,7 @@ def mk_blocks(fingers=[0, 4, 5, 9], blocks_per_pair=2):
     pairs = [[a, b] for a in fingers for b in fingers if (a != b & b < a)]
     np.random.shuffle(pairs)
     pairs = np.repeat(pairs, blocks_per_pair, 0)
-    mk_block('block0_demo.csv', pair=pairs[0], num_trials=50, prop_switch=0)
+    mk_block('block0_demo.csv', pair=pairs[0], num_trials=40, prop_switch=0)
     for i, pair in enumerate(pairs):
         mk_block('block' + str(i + 1) + '.csv', pair=pair)
 
